@@ -442,13 +442,9 @@ function updateApiStatus() {
 }
 
 async function loadWooOrders(fromSettings) {
-  const url = localStorage.getItem('woo_url') || 'https://fatbikes.ma';
-  const ck = localStorage.getItem('woo_ck');
-  const cs = localStorage.getItem('woo_cs');
-  if (!ck || !cs) {
-    if (fromSettings) document.getElementById('api-msg').innerHTML = '<div class="msg msg-err">Geen API sleutels ingesteld.</div>';
-    return;
-  }
+  const url = 'https://fatbikes.ma';
+  const ck = 'ck_dd100912340ceb1429b19cb0d0c083bf0c392930';
+  const cs = 'cs_8b86bac0b31cc150133dde42367b3f6ec02b2996';
   const btn = document.getElementById('refresh-btn');
   if (btn) btn.textContent = '↻ Laden...';
   try {
