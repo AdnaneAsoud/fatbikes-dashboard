@@ -644,13 +644,12 @@ async function loadGA4Data() {
   }
 }
 
+const GA4_CLIENT_ID = '800363130273-n10ka3lfk9t9tqn727ulbpnftk6584cg.apps.googleusercontent.com';
+
 function ga4Login() {
-  const clientId = localStorage.getItem('ga4_client_id') || prompt('Google OAuth Client ID (maak aan via console.cloud.google.com):');
-  if (!clientId) return;
-  localStorage.setItem('ga4_client_id', clientId);
   const redirect = encodeURIComponent(window.location.href.split('?')[0]);
   const scope = encodeURIComponent('https://www.googleapis.com/auth/analytics.readonly');
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GA4_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
 }
 
 // Check OAuth token in URL hash after redirect
