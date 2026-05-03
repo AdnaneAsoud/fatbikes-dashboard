@@ -562,97 +562,46 @@ function showGA4Dashboard() {
 }
 
 async function loadGA4Data() {
-  const propId = GA4_PROPERTY_ID;
-  if (!propId) return;
-
-  const token = localStorage.getItem('ga4_token');
-  if (!token) {
-    document.getElementById('ga4-cards').innerHTML = `
-      <div class="analytics-card" style="grid-column:1/-1;text-align:center;padding:2rem">
-        <p style="color:var(--text3);margin-bottom:1rem">Om live data te zien moet je inloggen met Google.</p>
-        <button class="btn btn-save" onclick="ga4Login()">Inloggen met Google</button>
-      </div>`;
-    document.getElementById('ga4-pages').innerHTML = '<tr><td colspan="2" style="color:var(--text3)">Log in om data te zien</td></tr>';
-    document.getElementById('ga4-exits').innerHTML = '<tr><td colspan="2" style="color:var(--text3)">Log in om data te zien</td></tr>';
-    return;
-  }
+  document.getElementById('ga4-cards').innerHTML = `
+    <div class="analytics-card" style="grid-column:1/-1;text-align:center;padding:1.5rem">
+      <div style="color:var(--text3)">Data laden...</div>
+    </div>`;
 
   try {
-    const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+    const resp = await fetch('/.netlify/functions/ga4');
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
 
-    // Fetch sessions, users, pageviews (last 30 days)
-    const summaryResp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propId}:runReport`, {
-      method: 'POST', headers,
-      body: JSON.stringify({
-        dateRanges: [{startDate: '30daysAgo', endDate: 'today'}],
-        metrics: [{name:'sessions'},{name:'totalUsers'},{name:'screenPageViews'},{name:'bounceRate'}]
-      })
-    });
-    const summary = await summaryResp.json();
-
-    if (summary.error) {
-      if (summary.error.code === 401) { localStorage.removeItem('ga4_token'); loadGA4Data(); return; }
-      throw new Error(summary.error.message);
-    }
-
-    const vals = summary.rows?.[0]?.metricValues || [];
-    const sessions   = vals[0]?.value || '0';
-    const users      = vals[1]?.value || '0';
-    const pageviews  = vals[2]?.value || '0';
-    const bounce     = vals[3]?.value ? (parseFloat(vals[3].value) * 100).toFixed(1) + '%' : '—';
+    const { summary, pages, exits } = data;
+    const vals      = summary.rows?.[0]?.metricValues || [];
+    const sessions  = parseInt(vals[0]?.value || 0).toLocaleString();
+    const users     = parseInt(vals[1]?.value || 0).toLocaleString();
+    const pageviews = parseInt(vals[2]?.value || 0).toLocaleString();
+    const bounce    = vals[3]?.value ? (parseFloat(vals[3].value) * 100).toFixed(1) + '%' : '—';
 
     document.getElementById('ga4-cards').innerHTML = `
-      <div class="analytics-card"><h4>Sessies (30 dagen)</h4><div class="big">${parseInt(sessions).toLocaleString()}</div><div class="sub">Bezoeken</div></div>
-      <div class="analytics-card"><h4>Gebruikers (30 dagen)</h4><div class="big">${parseInt(users).toLocaleString()}</div><div class="sub">Unieke bezoekers</div></div>
-      <div class="analytics-card"><h4>Paginaweergaven</h4><div class="big">${parseInt(pageviews).toLocaleString()}</div><div class="sub">Totaal</div></div>
+      <div class="analytics-card"><h4>Sessies (30 dagen)</h4><div class="big">${sessions}</div><div class="sub">Bezoeken</div></div>
+      <div class="analytics-card"><h4>Gebruikers (30 dagen)</h4><div class="big">${users}</div><div class="sub">Unieke bezoekers</div></div>
+      <div class="analytics-card"><h4>Paginaweergaven</h4><div class="big">${pageviews}</div><div class="sub">Totaal</div></div>
       <div class="analytics-card"><h4>Bouncepercentage</h4><div class="big" style="color:var(--red)">${bounce}</div><div class="sub">Directe afhakers</div></div>`;
 
-    // Top pages
-    const pagesResp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propId}:runReport`, {
-      method: 'POST', headers,
-      body: JSON.stringify({
-        dateRanges: [{startDate: '30daysAgo', endDate: 'today'}],
-        dimensions: [{name:'pagePath'}],
-        metrics: [{name:'screenPageViews'}],
-        orderBys: [{metric:{metricName:'screenPageViews'}, desc:true}],
-        limit: 8
-      })
-    });
-    const pages = await pagesResp.json();
     document.getElementById('ga4-pages').innerHTML = (pages.rows||[]).map(r =>
-      `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,35)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
+      `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
     ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
 
-    // Exit pages (where users leave)
-    const exitsResp = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propId}:runReport`, {
-      method: 'POST', headers,
-      body: JSON.stringify({
-        dateRanges: [{startDate: '30daysAgo', endDate: 'today'}],
-        dimensions: [{name:'pagePath'}],
-        metrics: [{name:'exits'}],
-        orderBys: [{metric:{metricName:'exits'}, desc:true}],
-        limit: 8
-      })
-    });
-    const exits = await exitsResp.json();
     document.getElementById('ga4-exits').innerHTML = (exits.rows||[]).map(r =>
-      `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,35)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
+      `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
     ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
 
   } catch(e) {
-    document.getElementById('ga4-cards').innerHTML = `<div class="analytics-card" style="grid-column:1/-1"><p style="color:var(--red)">Fout: ${e.message}</p></div>`;
+    document.getElementById('ga4-cards').innerHTML = `
+      <div class="analytics-card" style="grid-column:1/-1">
+        <p style="color:var(--red)">Fout: ${e.message}</p>
+      </div>`;
   }
 }
 
-const GA4_CLIENT_ID = '800363130273-n10ka3lfk9t9tqn727ulbpnftk6584cg.apps.googleusercontent.com';
-
-function ga4Login() {
-  const redirect = encodeURIComponent(window.location.href.split('?')[0]);
-  const scope = encodeURIComponent('https://www.googleapis.com/auth/analytics.readonly');
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GA4_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
-}
-
-// Check OAuth token in URL hash after redirect
+// Check OAuth token in URL hash after redirect (legacy, no longer needed)
 (function checkOAuthCallback() {
   const hash = window.location.hash;
   if (hash.includes('access_token')) {
