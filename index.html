@@ -281,7 +281,240 @@ const sheetData = [
   {date:'11/11/2025',num:'17384',nom:'Mohamed Oukhouya',email:'zizo.casablanca1992@gmail.com',tel:'0661709728',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Sidi bibi',adres:'',bron:'whatsapp'},
   {date:'11/11/2025',num:'17385',nom:'dra Mohammed',email:'dra.ayoub73@gmail.com',tel:'0659348485',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Khouribga',adres:'',bron:'whatsapp'},
   {date:'',num:'',nom:'Ahmed tonto',email:'-',tel:'0652694878',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'Whatsapp commande',ville:'Casablanca',adres:'',bron:'whatsapp'},
-  {date:'14/11/2025',num:
+];
+
+let waOrders = JSON.parse(localStorage.getItem('wa_orders') || '[]');
+let wooOrders = [];
+let sortKey = 'date';
+let sortDir = -1;
+
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  btns.forEach(b => b.classList.remove('active'));
+  const map = {orders: 0, whatsapp: 1, instellingen: 2};
+  if (map[name] !== undefined) btns[map[name]]?.classList.add('active');
+}
+
+function getAllOrders() {
+  return [...sheetData, ...waOrders, ...wooOrders];
+}
+
+function renderOrders() {
+  const search = (document.getElementById('search').value || '').toLowerCase();
+  const fStatus = (document.getElementById('f-status').value || '').toLowerCase();
+  const fBron = (document.getElementById('f-bron').value || '').toLowerCase();
+
+  let rows = getAllOrders().filter(o => {
+    const matchSearch = !search ||
+      (o.nom||'').toLowerCase().includes(search) ||
+      (o.ville||'').toLowerCase().includes(search) ||
+      (o.prod||'').toLowerCase().includes(search) ||
+      (o.num||'').toLowerCase().includes(search) ||
+      (o.tel||'').toLowerCase().includes(search);
+    const matchStatus = !fStatus || (o.cmd||'').toLowerCase() === fStatus;
+    const matchBron = !fBron || (o.bron||'').toLowerCase() === fBron;
+    return matchSearch && matchStatus && matchBron;
+  });
+
+  rows.sort((a, b) => {
+    let av = a[sortKey] || '', bv = b[sortKey] || '';
+    if (sortKey === 'date') {
+      av = av.split('/').reverse().join('');
+      bv = bv.split('/').reverse().join('');
+    }
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+
+  const tbody = document.getElementById('tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="12">Geen orders gevonden</td></tr>';
+    document.getElementById('count-label').textContent = '';
+    renderStats();
+    return;
+  }
+
+  tbody.innerHTML = rows.map((o, i) => {
+    const cmdLow = (o.cmd||'').toLowerCase();
+    const badge = cmdLow === 'oui' ? 'b-oui' : cmdLow === 'non' ? 'b-non' : 'b-woo';
+    const bronBadge = o.bron === 'whatsapp' ? 'b-wa' : 'b-woo';
+    return `<tr>
+      <td class="mono">${o.date||'-'}</td>
+      <td class="mono">${o.num||'-'}</td>
+      <td title="${o.nom||''}">${o.nom||'-'}</td>
+      <td class="mono" title="${o.email||''}">${o.email||'-'}</td>
+      <td class="mono">${o.tel||'-'}</td>
+      <td title="${o.prod||''}">${o.prod||'-'}</td>
+      <td><span class="badge ${badge}">${o.cmd||'-'}</span></td>
+      <td title="${o.raison||''}">${o.raison||'-'}</td>
+      <td>${o.ville||'-'}</td>
+      <td title="${o.adres||''}">${o.adres||'-'}</td>
+      <td><span class="badge ${bronBadge}">${o.bron||'-'}</span></td>
+      <td><button class="inv-btn" onclick="printInvoice(${i})">Factuur</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('count-label').textContent = `${rows.length} order${rows.length !== 1 ? 's' : ''} gevonden`;
+  renderStats();
+}
+
+function renderStats() {
+  const all = getAllOrders();
+  const oui = all.filter(o => (o.cmd||'').toLowerCase() === 'oui').length;
+  const non = all.filter(o => (o.cmd||'').toLowerCase() === 'non').length;
+  const woo = all.filter(o => o.bron === 'woo').length;
+  const wa = all.filter(o => o.bron === 'whatsapp').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Totaal</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Bevestigd</div><div class="stat-value green">${oui}</div></div>
+    <div class="stat-card"><div class="stat-label">Geweigerd</div><div class="stat-value red">${non}</div></div>
+    <div class="stat-card"><div class="stat-label">WooCommerce</div><div class="stat-value orange">${woo}</div></div>
+    <div class="stat-card"><div class="stat-label">WhatsApp</div><div class="stat-value">${wa}</div></div>
+  `;
+}
+
+function sortBy(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = -1; }
+  renderOrders();
+}
+
+function saveWhatsapp() {
+  const naam = document.getElementById('wa-naam').value.trim();
+  const tel = document.getElementById('wa-tel').value.trim();
+  const prod = document.getElementById('wa-prod').value;
+  if (!naam || !tel) {
+    document.getElementById('wa-msg').innerHTML = '<div class="msg msg-err">Naam en telefoon zijn verplicht.</div>';
+    return;
+  }
+  const order = {
+    date: new Date().toLocaleDateString('nl-BE'),
+    num: 'WA-' + Date.now(),
+    nom: naam, email: '', tel, prod,
+    cmd: document.getElementById('wa-status').value,
+    raison: document.getElementById('wa-raison').value.trim(),
+    ville: document.getElementById('wa-ville').value.trim(),
+    adres: '', note: document.getElementById('wa-note').value.trim(),
+    bron: 'whatsapp'
+  };
+  waOrders.push(order);
+  localStorage.setItem('wa_orders', JSON.stringify(waOrders));
+  document.getElementById('wa-msg').innerHTML = '<div class="msg msg-ok">Bestelling opgeslagen!</div>';
+  ['wa-naam','wa-tel','wa-ville','wa-raison','wa-note'].forEach(id => document.getElementById(id).value = '');
+  setTimeout(() => showSection('orders'), 1200);
+}
+
+function saveSettings() {
+  const url = document.getElementById('woo-url').value.trim();
+  const ck = document.getElementById('woo-ck').value.trim();
+  const cs = document.getElementById('woo-cs').value.trim();
+  if (!ck || !cs) {
+    document.getElementById('api-msg').innerHTML = '<div class="msg msg-err">Vul Consumer Key en Secret in.</div>';
+    return;
+  }
+  localStorage.setItem('woo_url', url);
+  localStorage.setItem('woo_ck', ck);
+  localStorage.setItem('woo_cs', cs);
+  document.getElementById('api-msg').innerHTML = '<div class="msg msg-info">Instellingen opgeslagen. Verbinding testen...</div>';
+  loadWooOrders(true);
+}
+
+function clearSettings() {
+  ['woo_url','woo_ck','woo_cs'].forEach(k => localStorage.removeItem(k));
+  document.getElementById('woo-ck').value = '';
+  document.getElementById('woo-cs').value = '';
+  document.getElementById('api-msg').innerHTML = '<div class="msg msg-ok">Instellingen verwijderd.</div>';
+  updateApiStatus();
+}
+
+function updateApiStatus() {
+  const ck = localStorage.getItem('woo_ck');
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('api-status');
+  if (ck) {
+    dot.classList.add('connected');
+    txt.textContent = 'Verbonden met ' + (localStorage.getItem('woo_url') || 'WooCommerce');
+  } else {
+    dot.classList.remove('connected');
+    txt.textContent = 'Geen API sleutels ingesteld';
+  }
+}
+
+async function loadWooOrders(fromSettings) {
+  const url = localStorage.getItem('woo_url') || 'https://fatbikes.ma';
+  const ck = localStorage.getItem('woo_ck');
+  const cs = localStorage.getItem('woo_cs');
+  if (!ck || !cs) {
+    if (fromSettings) document.getElementById('api-msg').innerHTML = '<div class="msg msg-err">Geen API sleutels ingesteld.</div>';
+    return;
+  }
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.textContent = '↻ Laden...';
+  try {
+    const resp = await fetch(`${url}/wp-json/wc/v3/orders?per_page=50&consumer_key=${ck}&consumer_secret=${cs}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    wooOrders = data.map(o => ({
+      date: o.date_created ? o.date_created.split('T')[0].split('-').reverse().join('/') : '',
+      num: String(o.id),
+      nom: `${o.billing?.first_name||''} ${o.billing?.last_name||''}`.trim(),
+      email: o.billing?.email || '',
+      tel: o.billing?.phone || '',
+      prod: o.line_items?.map(i => i.name).join(', ') || '',
+      cmd: o.status === 'completed' ? 'Oui' : o.status,
+      raison: '', ville: o.billing?.city || '',
+      adres: o.billing?.address_1 || '', bron: 'woo'
+    }));
+    if (fromSettings) document.getElementById('api-msg').innerHTML = '<div class="msg msg-ok">Verbonden! ' + wooOrders.length + ' orders geladen.</div>';
+    updateApiStatus();
+    renderOrders();
+  } catch(e) {
+    if (fromSettings) document.getElementById('api-msg').innerHTML = '<div class="msg msg-err">Fout: ' + e.message + '. Controleer URL en sleutels.</div>';
+  }
+  if (btn) btn.textContent = '↻ Vernieuwen';
+}
+
+function printInvoice(idx) {
+  const o = getAllOrders()[idx];
+  if (!o) return;
+  const w = window.open('', '_blank', 'width=700,height=900');
+  w.document.write(`<html><head><title>Factuur ${o.num}</title><style>
+    body{font-family:sans-serif;padding:40px;color:#111}h1{font-size:22px;margin-bottom:4px}
+    .sub{color:#666;font-size:13px;margin-bottom:30px}table{width:100%;border-collapse:collapse;margin-top:20px}
+    td,th{padding:10px 12px;border:1px solid #ddd;font-size:13px}th{background:#f5f5f5;text-align:left}
+  </style></head><body>
+    <h1>Fatbikes.ma</h1><div class="sub">Order Dashboard — Factuur</div>
+    <table>
+      <tr><th>Order #</th><td>${o.num}</td></tr>
+      <tr><th>Datum</th><td>${o.date}</td></tr>
+      <tr><th>Klant</th><td>${o.nom}</td></tr>
+      <tr><th>Email</th><td>${o.email}</td></tr>
+      <tr><th>Telefoon</th><td>${o.tel}</td></tr>
+      <tr><th>Product</th><td>${o.prod}</td></tr>
+      <tr><th>Status</th><td>${o.cmd}</td></tr>
+      <tr><th>Stad</th><td>${o.ville}</td></tr>
+      <tr><th>Adres</th><td>${o.adres}</td></tr>
+    </table>
+    <script>window.print();<\/script>
+  </body></html>`);
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  const savedCk = localStorage.getItem('woo_ck');
+  if (savedCk) {
+    document.getElementById('woo-ck').value = savedCk;
+    document.getElementById('woo-cs').value = localStorage.getItem('woo_cs') || '';
+  }
+  updateApiStatus();
+  renderOrders();
+  loadWooOrders(false);
+  if (sessionStorage.getItem('fb_auth') === '1') {
+    var el = document.getElementById('login-overlay');
+    if (el) el.style.display = 'none';
+  }
+});
+
 // LOGIN CHECK
 (function() {
   var PASS = 'Welkom28';
@@ -296,12 +529,4 @@ const sheetData = [
       document.getElementById('pw-input').focus();
     }
   };
-  window.addEventListener('DOMContentLoaded', function() {
-    if (sessionStorage.getItem('fb_auth') === '1') {
-      var el = document.getElementById('login-overlay');
-      if (el) el.style.display = 'none';
-    }
-  });
 })();
-
-'
