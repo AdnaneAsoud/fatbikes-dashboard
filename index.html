@@ -545,12 +545,6 @@ function closeInvoice() {
 
 // GA4
 function connectGA4() {
-  const id = (document.getElementById('ga4-id-input').value || '').trim();
-  if (!id || !/^\d+$/.test(id)) {
-    document.getElementById('ga4-msg').textContent = 'Voer een geldig Property ID in (alleen cijfers).';
-    return;
-  }
-  localStorage.setItem('ga4_property_id', id);
   showGA4Dashboard();
   loadGA4Data();
 }
@@ -568,7 +562,7 @@ function showGA4Dashboard() {
 }
 
 async function loadGA4Data() {
-  const propId = localStorage.getItem('ga4_property_id');
+  const propId = GA4_PROPERTY_ID;
   if (!propId) return;
 
   const token = localStorage.getItem('ga4_token');
@@ -727,18 +721,19 @@ async function loadWooOrders(fromRefresh) {
   if (btn) btn.textContent = '↻ Vernieuwen';
 }
 
+const GA4_PROPERTY_ID = '492800314';
+
 window.addEventListener('DOMContentLoaded', function() {
   if (sessionStorage.getItem('fb_auth') === '1') {
     document.getElementById('login-overlay').style.display = 'none';
   }
   renderOrders();
   loadWooOrders(false);
-  const savedId = localStorage.getItem('ga4_property_id');
-  if (savedId) {
-    document.getElementById('ga4-id-input').value = savedId;
-    showGA4Dashboard();
-    loadGA4Data();
-  }
+  // Property ID is hardcoded — always show GA4 dashboard
+  localStorage.setItem('ga4_property_id', GA4_PROPERTY_ID);
+  document.getElementById('ga4-id-input').value = GA4_PROPERTY_ID;
+  showGA4Dashboard();
+  loadGA4Data();
 });
 
 // LOGIN
