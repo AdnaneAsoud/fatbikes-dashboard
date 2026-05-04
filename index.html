@@ -163,10 +163,71 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .login-error { color: #f87171; font-size: 12px; margin-top: 10px; min-height: 16px; }
 
 @media print { .sidebar, .topbar, .modal-overlay, .invoice-actions { display: none !important; } .main-wrap { margin-left: 0; } .modal { border: none; box-shadow: none; } }
-@media (max-width: 700px) { .sidebar { display: none; } .main-wrap { margin-left: 0; } .form-grid { grid-template-columns: 1fr; } }
+
+/* BOTTOM NAV MOBILE */
+.bottom-nav { display: none; }
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .main-wrap { margin-left: 0; padding-bottom: 70px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .analytics-grid { grid-template-columns: 1fr 1fr; }
+  #sec-verzending > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    height: 60px;
+  }
+  .bottom-nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    cursor: pointer;
+    transition: color 0.15s;
+    padding: 6px 4px;
+  }
+  .bottom-nav button .bn-icon { font-size: 18px; line-height: 1; }
+  .bottom-nav button.active { color: var(--accent); }
+  .bottom-nav button:hover { color: var(--text); }
+  .table-wrap { border-radius: 0; border-left: none; border-right: none; }
+  td, th { padding: 8px 8px; }
+  .main { padding: 1rem 0.75rem; }
+  .topbar { padding: 0 0.75rem; }
+  .form-card { padding: 1rem; }
+}
 </style>
 </head>
 <body>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button onclick="showSection('orders')" id="bn-orders" class="active">
+    <span class="bn-icon">📦</span>Orders
+  </button>
+  <button onclick="showSection('analytics')" id="bn-analytics">
+    <span class="bn-icon">📊</span>Analytics
+  </button>
+  <button onclick="showSection('verzending')" id="bn-verzending">
+    <span class="bn-icon">🚚</span>Verzending
+  </button>
+  <button onclick="showSection('whatsapp')" id="bn-whatsapp">
+    <span class="bn-icon">💬</span>WhatsApp
+  </button>
+  <button onclick="showSection('instellingen')" id="bn-instellingen">
+    <span class="bn-icon">⚙</span>Meer
+  </button>
+</nav>
 
 <div id="login-overlay">
   <div class="login-box">
@@ -516,6 +577,9 @@ function showSection(name) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   const nb = document.getElementById('nav-' + name);
   if (nb) nb.classList.add('active');
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  const bn = document.getElementById('bn-' + name);
+  if (bn) bn.classList.add('active');
   document.getElementById('topbar-title').textContent = SECTION_TITLES[name] || '';
   const rb = document.getElementById('refresh-btn');
   if (rb) rb.style.display = name === 'orders' ? '' : 'none';
