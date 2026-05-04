@@ -602,7 +602,7 @@ function showSection(name) {
   document.getElementById('topbar-title').textContent = SECTION_TITLES[name] || '';
   const rb = document.getElementById('refresh-btn');
   if (rb) rb.style.display = name === 'orders' ? '' : 'none';
-  if (name === 'verzending') renderVerzending();
+  if (name === 'verzending') renderVerzending().catch(()=>{});
 }
 
 function getAllOrders() { return [...sheetData, ...waOrders, ...wooOrders]; }
@@ -875,11 +875,31 @@ function slaOzonKeyOp() {
   setTimeout(() => document.getElementById('oz-msg').innerHTML = '', 2000);
 }
 
-function renderVerzending() {
+async function laadSteden() {
+  const apiKey = localStorage.getItem('ozon_apikey') || '';
+  const customerId = localStorage.getItem('ozon_customerid') || '';
+  if (!apiKey || !customerId) return;
+  const sel = document.getElementById('oz-stad');
+  sel.innerHTML = '<option value="">Laden...</option>';
+  try {
+    const resp = await fetch(`/.netlify/functions/ozon-cities?apiKey=${apiKey}&customerId=${customerId}`);
+    const data = await resp.json();
+    const cities = data.CITIES || data.cities || data;
+    if (typeof cities === 'object' && !cities.error) {
+      const sorted = Object.values(cities).filter(c => c.ID && c.NAME).sort((a,b) => a.NAME.localeCompare(b.NAME));
+      sel.innerHTML = sorted.map(c => `<option value="${c.ID}">${c.NAME}</option>`).join('');
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="">Fout bij laden</option>';
+  }
+}
+
+async function renderVerzending() {
   const ozonKey = localStorage.getItem('ozon_apikey') || '';
   const ozonCid = localStorage.getItem('ozon_customerid') || '';
   if (ozonKey) document.getElementById('oz-apikey').value = ozonKey;
   if (ozonCid) document.getElementById('oz-customerid').value = ozonCid;
+  laadSteden();
 
   const bevestigd = getAllOrders().filter(o => (o.cmd||'').toLowerCase() === 'oui');
   const verzondNums = verzendingen.map(v => v.num);
