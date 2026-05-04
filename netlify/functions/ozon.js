@@ -46,9 +46,10 @@ exports.handler = async function(event) {
       return { statusCode: resp.status, headers: CORS, body: JSON.stringify({ error: `OzonExpres fout: ${resp.status}`, details: data }) };
     }
 
-    const tracking = data?.['ADD-PARCEL']?.BARCODE
+    const tracking = data?.['ADD-PARCEL']?.['NEW-PARCEL']?.['TRACKING-NUMBER']
+      || data?.['ADD-PARCEL']?.BARCODE
       || data?.['ADD-PARCEL']?.['TRACKING-NUMBER']
-      || data?.tracking_number || data?.barcode || null;
+      || null;
 
     const result = data?.['ADD-PARCEL']?.RESULT || null;
     if (result === 'ERROR') {
