@@ -1,0 +1,1110 @@
+﻿<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fatbikes.ma — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117; --bg2: #181b24; --bg3: #1e2230;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f0; --text2: #8a8fa8; --text3: #555b72;
+  --accent: #ff6b35; --accent2: #ff8c5a;
+  --green: #3ecf8e; --green-bg: rgba(62,207,142,0.1);
+  --red: #f87171; --red-bg: rgba(248,113,113,0.1);
+  --blue: #60a5fa; --blue-bg: rgba(96,165,250,0.1);
+  --sidebar: 220px; --radius: 12px; --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; font-size: 14px; }
+
+/* SIDEBAR */
+.sidebar { width: var(--sidebar); min-height: 100vh; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 50; }
+.sidebar-logo { padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid var(--border); }
+.logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 8px; }
+.logo-text { font-size: 15px; font-weight: 600; }
+.logo-sub { font-size: 11px; color: var(--text3); }
+.sidebar-nav { padding: 0.75rem; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 13px; transition: all 0.15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; font-family: 'DM Sans', sans-serif; }
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--bg3); color: var(--text); font-weight: 500; }
+.nav-item.accent { color: var(--accent); }
+.nav-item.accent:hover { background: rgba(255,107,53,0.1); }
+.nav-icon { font-size: 15px; width: 20px; text-align: center; }
+.sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); }
+.status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--text3); margin-right: 5px; vertical-align: middle; }
+.status-dot.connected { background: var(--green); box-shadow: 0 0 5px rgba(62,207,142,0.5); }
+
+/* MAIN */
+.main-wrap { margin-left: var(--sidebar); flex: 1; }
+.topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 40; }
+.topbar-title { font-size: 14px; font-weight: 600; }
+.section { display: none; }
+.section.active { display: block; }
+.main { padding: 1.5rem; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; transition: border-color 0.15s; }
+.stat-card:hover { border-color: var(--border2); }
+.stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.stat-value { font-size: 26px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -1px; }
+.stat-value.green { color: var(--green); }
+.stat-value.red { color: var(--red); }
+.stat-value.orange { color: var(--accent); }
+
+/* CONTROLS */
+.controls { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+.search-wrap { flex: 1; min-width: 200px; position: relative; }
+.search-wrap input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px 8px 34px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
+.search-wrap input:focus { border-color: var(--border2); }
+.search-wrap input::placeholder { color: var(--text3); }
+.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; }
+select { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; cursor: pointer; }
+.refresh-btn { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+.refresh-btn:hover { color: var(--text); border-color: var(--border2); }
+
+/* TABLE */
+.table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 800px; }
+thead { background: var(--bg3); }
+th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; user-select: none; white-space: nowrap; border-bottom: 1px solid var(--border); }
+th:hover { color: var(--text2); }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.b-oui { background: var(--green-bg); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+.b-non { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+.b-woo { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+.b-wa { background: rgba(37,211,102,0.1); color: #25d366; border: 1px solid rgba(37,211,102,0.2); }
+.b-bellen { background: rgba(255,107,53,0.15); color: var(--accent); border: 1px solid rgba(255,107,53,0.3); font-weight: 600; }
+.btn-ok { background: rgba(62,207,142,0.15); border: 1px solid rgba(62,207,142,0.3); border-radius: 6px; padding: 4px 10px; color: var(--green); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+.btn-ok:hover { background: rgba(62,207,142,0.25); }
+.btn-nee { background: var(--red-bg); border: 1px solid rgba(248,113,113,0.2); border-radius: 6px; padding: 4px 10px; color: var(--red); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+.btn-nee:hover { background: rgba(248,113,113,0.2); }
+tr.rij-bellen td { background: rgba(255,107,53,0.04); }
+.empty-row td { text-align: center; padding: 3rem; color: var(--text3); }
+.inv-btn { background: var(--accent); border: none; border-radius: 6px; padding: 5px 12px; color: white; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; transition: background 0.15s; }
+.inv-btn:hover { background: var(--accent2); }
+.count-label { font-size: 12px; color: var(--text3); margin-top: 0.6rem; }
+
+/* FORMS */
+.form-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; max-width: 640px; }
+.form-title { font-size: 15px; font-weight: 600; margin-bottom: 1.25rem; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 12px; color: var(--text2); }
+.form-group input, .form-group select, .form-group textarea { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; resize: none; }
+.form-group input::placeholder, .form-group textarea::placeholder { color: var(--text3); }
+.form-actions { display: flex; gap: 8px; margin-top: 1rem; }
+.btn { padding: 8px 18px; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); }
+.btn:hover { color: var(--text); border-color: var(--border2); }
+.btn-save { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-save:hover { background: var(--accent2); border-color: var(--accent2); }
+.msg { margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; }
+.msg-ok { background: var(--green-bg); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+.msg-err { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+.msg-info { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+
+/* SETTINGS */
+.settings-section { max-width: 520px; }
+.settings-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+.settings-title { font-size: 14px; font-weight: 600; margin-bottom: 0.3rem; }
+.settings-sub { font-size: 12px; color: var(--text3); margin-bottom: 1rem; line-height: 1.6; }
+.api-fields { display: flex; flex-direction: column; gap: 8px; }
+.api-fields input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; width: 100%; }
+.api-fields input:focus { border-color: var(--accent); }
+
+/* ANALYTICS */
+.ga4-placeholder { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; max-width: 480px; }
+.ga4-placeholder h3 { font-size: 16px; margin-bottom: 0.5rem; }
+.ga4-placeholder p { font-size: 13px; color: var(--text3); line-height: 1.7; margin-bottom: 1.5rem; }
+.ga4-input { display: flex; gap: 8px; }
+.ga4-input input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; }
+.ga4-input input:focus { border-color: var(--accent); }
+.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.analytics-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+.analytics-card h4 { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.analytics-card .big { font-size: 32px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--accent); }
+.analytics-card .sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.page-table { width: 100%; border-collapse: collapse; }
+.page-table td { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.page-table td:last-child { text-align: right; color: var(--text2); font-family: 'DM Mono', monospace; font-size: 12px; border-bottom: 1px solid var(--border); }
+.page-table tr:last-child td { border-bottom: none; }
+
+/* INVOICE MODAL */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal-overlay.hidden { display: none; }
+.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 1.75rem; position: relative; }
+.modal-close { position: absolute; top: 14px; right: 14px; background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; line-height: 1; padding: 4px; }
+.modal-close:hover { color: var(--text); }
+.invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.invoice-logo { font-size: 18px; font-weight: 600; }
+.invoice-logo span { color: var(--accent); }
+.invoice-meta { text-align: right; font-size: 12px; color: var(--text3); line-height: 1.6; }
+.invoice-meta strong { color: var(--text); display: block; font-size: 14px; }
+.invoice-section { margin-bottom: 1.25rem; }
+.invoice-section h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text3); margin-bottom: 8px; }
+.invoice-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.invoice-row span:last-child { color: var(--text2); max-width: 60%; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+.invoice-total { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+.invoice-total-label { font-weight: 600; font-size: 14px; }
+.invoice-total-price { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 600; color: var(--accent); }
+.invoice-actions { display: flex; gap: 8px; margin-top: 1.25rem; }
+
+/* LOGIN */
+#login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f1117; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.login-box { background: #181b24; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 360px; text-align: center; }
+.login-icon { font-size: 36px; margin-bottom: 1rem; }
+.login-title { font-size: 20px; font-weight: 600; margin-bottom: 0.3rem; }
+.login-sub { font-size: 12px; color: #555b72; margin-bottom: 1.5rem; }
+.login-box input { width: 100%; background: #1e2230; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 11px 14px; color: #f0f0f0; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; margin-bottom: 12px; text-align: center; letter-spacing: 2px; }
+.login-box input:focus { border-color: #ff6b35; }
+.login-btn { width: 100%; background: #ff6b35; color: white; border: none; border-radius: 8px; padding: 11px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+.login-btn:hover { background: #ff8c5a; }
+.login-error { color: #f87171; font-size: 12px; margin-top: 10px; min-height: 16px; }
+
+@media print { .sidebar, .topbar, .modal-overlay, .invoice-actions { display: none !important; } .main-wrap { margin-left: 0; } .modal { border: none; box-shadow: none; } }
+
+/* BOTTOM NAV MOBILE */
+.bottom-nav { display: none; }
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .main-wrap { margin-left: 0; padding-bottom: 70px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .analytics-grid { grid-template-columns: 1fr 1fr; }
+  #sec-verzending > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+    height: 60px;
+  }
+  .bottom-nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    cursor: pointer;
+    transition: color 0.15s;
+    padding: 6px 4px;
+  }
+  .bottom-nav button .bn-icon { font-size: 18px; line-height: 1; }
+  .bottom-nav button.active { color: var(--accent); }
+  .bottom-nav button:hover { color: var(--text); }
+  .table-wrap { border-radius: 0; border-left: none; border-right: none; }
+  td, th { padding: 8px 8px; }
+  .main { padding: 1rem 0.75rem; }
+  .topbar { padding: 0 0.75rem; }
+  .form-card { padding: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button onclick="showSection('orders')" id="bn-orders" class="active">
+    <span class="bn-icon">📦</span>Orders
+  </button>
+  <button onclick="showSection('analytics')" id="bn-analytics">
+    <span class="bn-icon">📊</span>Analytics
+  </button>
+  <button onclick="showSection('verzending')" id="bn-verzending">
+    <span class="bn-icon">🚚</span>Verzending
+  </button>
+  <button onclick="showSection('whatsapp')" id="bn-whatsapp">
+    <span class="bn-icon">💬</span>WhatsApp
+  </button>
+  <button onclick="showSection('instellingen')" id="bn-instellingen">
+    <span class="bn-icon">⚙</span>Meer
+  </button>
+</nav>
+
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-icon">🚴</div>
+    <div class="login-title">Fatbikes.ma</div>
+    <div class="login-sub">Order Dashboard — Voer wachtwoord in</div>
+    <input type="password" id="pw-input" placeholder="Wachtwoord" onkeydown="if(event.key==='Enter')checkLogin()"/>
+    <button class="login-btn" onclick="checkLogin()">Inloggen</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- FACTUUR MODAL -->
+<div class="modal-overlay hidden" id="invoice-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeInvoice()">✕</button>
+    <div class="invoice-header">
+      <div>
+        <div class="invoice-logo">Fatbikes<span>.ma</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px;">Order Dashboard</div>
+      </div>
+      <div class="invoice-meta">
+        <strong id="inv-num">—</strong>
+        <span id="inv-date">—</span>
+      </div>
+    </div>
+    <div class="invoice-section">
+      <h4>Klantgegevens</h4>
+      <div class="invoice-row"><span>Naam</span><span id="inv-nom">—</span></div>
+      <div class="invoice-row"><span>Telefoon</span><span id="inv-tel">—</span></div>
+      <div class="invoice-row"><span>Email</span><span id="inv-email">—</span></div>
+      <div class="invoice-row"><span>Stad</span><span id="inv-ville">—</span></div>
+      <div class="invoice-row"><span>Adres</span><span id="inv-adres">—</span></div>
+    </div>
+    <div class="invoice-section">
+      <h4>Bestelling</h4>
+      <div class="invoice-row"><span>Product</span><span id="inv-prod">—</span></div>
+      <div class="invoice-row"><span>Status</span><span id="inv-cmd">—</span></div>
+    </div>
+    <div class="invoice-total">
+      <span class="invoice-total-label">Totaal</span>
+      <span class="invoice-total-price" id="inv-price">—</span>
+    </div>
+    <div class="invoice-actions">
+      <button class="btn btn-save" onclick="window.print()">🖨 Afdrukken</button>
+      <button class="btn" onclick="closeInvoice()">Sluiten</button>
+    </div>
+  </div>
+</div>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🚴</div>
+    <div class="logo-text">Fatbikes.ma</div>
+    <div class="logo-sub">Order Dashboard</div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="showSection('orders')" id="nav-orders">
+      <span class="nav-icon">📦</span> Bestellingen
+    </button>
+    <button class="nav-item" onclick="showSection('analytics')" id="nav-analytics">
+      <span class="nav-icon">📊</span> Analytics
+    </button>
+    <button class="nav-item accent" onclick="showSection('whatsapp')" id="nav-whatsapp">
+      <span class="nav-icon">💬</span> + WhatsApp
+    </button>
+    <button class="nav-item" onclick="showSection('verzending')" id="nav-verzending">
+      <span class="nav-icon">🚚</span> Verzending
+    </button>
+    <button class="nav-item" onclick="showSection('instellingen')" id="nav-instellingen">
+      <span class="nav-icon">⚙</span> Instellingen
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="api-status">Verbinden...</span>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Bestellingen</div>
+    <div>
+      <button class="refresh-btn" onclick="loadWooOrders(true)" id="refresh-btn">↻ Vernieuwen</button>
+    </div>
+  </div>
+  <div class="main">
+
+    <!-- BESTELLINGEN -->
+    <div class="section active" id="sec-orders">
+      <div class="stats-grid" id="stats"></div>
+      <div class="controls">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search" placeholder="Zoek naam, stad, product..." oninput="renderOrders()"/>
+        </div>
+        <select id="f-status" onchange="renderOrders()">
+          <option value="">Alle statussen</option>
+          <option value="bellen">📞 Te bellen</option>
+          <option value="oui">✅ Goedgekeurd</option>
+          <option value="non">❌ Geweigerd</option>
+        </select>
+        <select id="f-bron" onchange="renderOrders()">
+          <option value="">Alle bronnen</option>
+          <option value="woo">WooCommerce</option>
+          <option value="whatsapp">WhatsApp</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('date')">Datum</th>
+              <th onclick="sortBy('num')">#</th>
+              <th onclick="sortBy('nom')">Naam</th>
+              <th>Telefoon</th>
+              <th onclick="sortBy('prod')">Product</th>
+              <th onclick="sortBy('cmd')">Status</th>
+              <th onclick="sortBy('ville')">Stad</th>
+              <th>Bron</th>
+              <th>Acties</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="count-label" id="count-label"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="section" id="sec-analytics">
+      <div id="ga4-setup-block">
+        <div class="ga4-placeholder">
+          <div style="font-size:40px;margin-bottom:1rem">📊</div>
+          <h3>Google Analytics koppelen</h3>
+          <p>Voer je GA4 Property ID in. Je vindt dit in<br/>GA4 → Beheer → Property-instellingen.</p>
+          <div class="ga4-input">
+            <input type="text" id="ga4-id-input" placeholder="bijv. 123456789"/>
+            <button class="btn btn-save" onclick="connectGA4()">Koppelen</button>
+          </div>
+          <div id="ga4-msg" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>
+        </div>
+      </div>
+      <div id="ga4-dashboard" style="display:none">
+        <div class="analytics-grid" id="ga4-cards"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="analytics-card">
+            <h4>Populaire pagina's</h4>
+            <table class="page-table" id="ga4-pages"><tr><td colspan="2" style="color:var(--text3)">Laden...</td></tr></table>
+          </div>
+          <div class="analytics-card">
+            <h4>Waar haken mensen af?</h4>
+            <table class="page-table" id="ga4-exits"><tr><td colspan="2" style="color:var(--text3)">Laden...</td></tr></table>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="refresh-btn" onclick="loadGA4Data(true)">↻ Vernieuwen</button>
+          <button class="btn" style="margin-left:8px" onclick="disconnectGA4()">Ontkoppelen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHATSAPP -->
+    <div class="section" id="sec-whatsapp">
+      <div class="form-card">
+        <div class="form-title">Nieuwe WhatsApp bestelling</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Naam klant *</label><input type="text" id="wa-naam" placeholder="Mohammed Alami"/></div>
+          <div class="form-group"><label>Telefoon *</label><input type="text" id="wa-tel" placeholder="0661234567"/></div>
+          <div class="form-group"><label>Product *</label>
+            <select id="wa-prod">
+              <option value="Fatbike ouxi V8 pro">Fatbike ouxi V8 pro</option>
+              <option value="Troitnette X8">Troitnette X8</option>
+              <option value="Ander product">Ander product</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Stad</label><input type="text" id="wa-ville" placeholder="Casablanca"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="wa-status">
+              <option value="Oui">✅ Bevestigd</option>
+              <option value="Non">❌ Geweigerd</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Reden</label><input type="text" id="wa-raison" placeholder="Te duur..."/></div>
+          <div class="form-group full"><label>Notitie</label><textarea id="wa-note" rows="3" placeholder="Extra info..."></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-save" onclick="saveWhatsapp()">Opslaan</button>
+          <button class="btn" onclick="showSection('orders')">Annuleren</button>
+        </div>
+        <div id="wa-msg"></div>
+      </div>
+    </div>
+
+    <!-- VERZENDING -->
+    <div class="section" id="sec-verzending">
+      <div class="stats-grid" id="verzend-stats"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+        <!-- Te verzenden -->
+        <div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Te verzenden</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Naam</th><th>Product</th><th>Stad</th><th>Actie</th>
+              </tr></thead>
+              <tbody id="tbl-te-verzenden"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Verzonden -->
+        <div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Verzonden</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Naam</th><th>Track & Trace</th><th>Status</th>
+              </tr></thead>
+              <tbody id="tbl-verzonden"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zending aanmaken -->
+      <div class="form-card" style="max-width:100%;margin-top:0.5rem">
+        <div class="form-title">Nieuwe zending aanmaken — OzonExpres</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Bestelling #</label>
+            <input type="text" id="oz-num" placeholder="17356"/>
+          </div>
+          <div class="form-group">
+            <label>Ontvanger naam</label>
+            <input type="text" id="oz-naam" placeholder="Mohammed Alami"/>
+          </div>
+          <div class="form-group">
+            <label>Telefoon</label>
+            <input type="text" id="oz-tel" placeholder="0661234567"/>
+          </div>
+          <div class="form-group">
+            <label>Stad</label>
+            <select id="oz-stad">
+              <option value="1">Casablanca</option>
+              <option value="2">Rabat</option>
+              <option value="3">Marrakech</option>
+              <option value="4">Fès</option>
+              <option value="5">Tanger</option>
+              <option value="6">Agadir</option>
+              <option value="7">Meknès</option>
+              <option value="8">Oujda</option>
+              <option value="9">Kenitra</option>
+              <option value="10">Tétouan</option>
+              <option value="11">Safi</option>
+              <option value="12">El Jadida</option>
+              <option value="13">Béni Mellal</option>
+              <option value="14">Nador</option>
+              <option value="15">Settat</option>
+              <option value="16">Khouribga</option>
+              <option value="17">Taza</option>
+              <option value="18">Larache</option>
+              <option value="19">Ksar El Kebir</option>
+              <option value="20">Guelmim</option>
+              <option value="21">Mohammedia</option>
+              <option value="22">Salé</option>
+              <option value="23">Berrechid</option>
+              <option value="24">Ben Guerir</option>
+              <option value="25">Bouarfa</option>
+              <option value="26">Sidi Bouzid</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Adres</label>
+            <input type="text" id="oz-adres" placeholder="Rue Mohammed V, nr 12"/>
+          </div>
+          <div class="form-group">
+            <label>Bedrag (MAD)</label>
+            <input type="number" id="oz-bedrag" placeholder="0"/>
+          </div>
+          <div class="form-group">
+            <label>Aantal colli</label>
+            <input type="number" id="oz-stock" placeholder="1" value="1"/>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-save" onclick="maakZending()">📦 Zending aanmaken</button>
+          <button class="btn" onclick="renderVerzending()">↻ Vernieuwen</button>
+        </div>
+        <div id="oz-msg"></div>
+
+      </div>
+    </div>
+
+    <!-- INSTELLINGEN -->
+    <div class="section" id="sec-instellingen">
+      <div class="settings-section">
+        <div class="settings-card">
+          <div class="settings-title">WooCommerce API</div>
+          <div class="settings-sub">API sleutels zijn ingesteld voor fatbikes.ma.</div>
+          <div class="api-fields">
+            <input type="text" id="woo-url" value="https://fatbikes.ma" readonly/>
+            <input type="text" id="woo-ck" placeholder="Consumer Key" readonly value="ck_dd100912340ceb1429b19cb0d0c083bf0c392930"/>
+            <input type="password" id="woo-cs" placeholder="Consumer Secret" readonly value="cs_8b86bac0b31cc150133dde42367b3f6ec02b2996"/>
+          </div>
+          <div id="api-msg"></div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-title">Verbindingsstatus</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px">
+            <span class="status-dot" id="status-dot2"></span>
+            <span id="api-status2">Verbinden...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const OZON_CITIES=[{id:1606,name:" ighram laalam-beni mellal"},{id:1618,name:" jamaat fdala"},{id:1578,name:" Kasbah El Taher"},{id:1588,name:" Lalla Fatna"},{id:1082,name:" MEHDIA"},{id:2114,name:" Nowasser-chichaoua"},{id:2073,name:"aazayeb-chefchaouen"},{id:1610,name:"Afourar - Beni-Mellal"},{id:2028,name:"AFRA-nador"},{id:37,name:"Agadir"},{id:1844,name:"Agafay"},{id:2130,name:"agdz"},{id:1852,name:"Aghbala-Beni Mellal"},{id:1818,name:"Aghbal-BERKAN"},{id:1787,name:"Aghbalou Nserdan"},{id:1539,name:"Aglou"},{id:1964,name:"Agouim-Ouarzazate"},{id:1574,name:"Agouray - Meknes"},{id:1729,name:"Aguelmous"},{id:2155,name:"Aguidir-imintanout"},{id:1605,name:"agzirt Beni-Mellal"},{id:2099,name:"Ahdil-chichaoua"},{id:1761,name:"AHFIR"},{id:2052,name:"Ahmar laglalcha-taroudant"},{id:1938,name:"ain aicha - taounate"},{id:2016,name:"Ain Allah-fes"},{id:2000,name:"Ain Aouda-TEMARA"},{id:1995,name:"AIN ATTIQ-TEMARA"},{id:2115,name:"Ain Beida-chichaoua"},{id:1807,name:"Ain Bita-sefrou"},{id:1570,name:"Ain Bni Mathar"},{id:1461,name:"Ain Cheggag"},{id:1680,name:"Ain Chkef"},{id:1655,name:"Ain Dfali-Ouazzane"},{id:1573,name:"Ain Dorij"},{id:1586,name:"Ain el Mediour"},{id:2127,name:"Aïn Erreggada"},{id:235,name:"Ain Harouda"},{id:1660,name:"Ain Jemaa-meknes"},{id:1662,name:"Ain jiri-meknes"},{id:364,name:"ain leuh"},{id:1939,name:"ain mediouna - taounate"},{id:1749,name:"Ain Sbit-Khemisset "},{id:1583,name:"Ain Seddaq"},{id:1619,name:"Ain Tekki"},{id:1689,name:"Ain Zarka"},{id:1882,name:"aine aghbal-meknes"},{id:1883,name:"ait ai3zam-meknes"},{id:1595,name:"Ait Aissa Oubrahim"},{id:1075,name:"AIT AMIRA-AGADIR"},{id:1859,name:"Ait Baha"},{id:1814,name:"Ait Ben Haddou-Ouarzazate"},{id:1863,name:"Aït Hadifa-Al Hoceima"},{id:2079,name:"Ait Hani-tinghir"},{id:1585,name:"Ait Iaaza"},{id:1596,name:"ait ihya omoussa-kelaa magouna"},{id:1837,name:"Ait ishaq"},{id:1780,name:"Ait Kamra-Hoceima"},{id:49,name:"Ait Melloul"},{id:1634,name:"Ait ourir-MARRAKECH"},{id:1966,name:"Ait Zineb-Ouarzazate"},{id:1562,name:"Ajdir-HOUCIMA"},{id:1922,name:"Ajdir-taza"},{id:1923,name:"Akchour"},{id:1825,name:"Akhfennir"},{id:1699,name:"Akka-tata"},{id:1821,name:"Aklim"},{id:1878,name:"Aknoul-taza"},{id:2077,name:"akrach-RABAT"},{id:55,name:"Al Hoceima"},{id:1546,name:"Alnif"},{id:1813,name:"Amerzgane-Ouarzazate"},{id:2144,name:"Ameskroud-agadir"},{id:1765,name:"Amizmiz"},{id:963,name:"ANZA"},{id:2085,name:"ANZI-TIZNIT"},{id:1593,name:"Aoufous"},{id:1770,name:"Aoulouz"},{id:1549,name:"Aourir-Agadir"},{id:2146,name:"aousserd-DAKHLA"},{id:1803,name:"Arba Aounate-أربعاء العونات"},{id:1909,name:"ARBAOUA"},{id:1622,name:"Arjat-Mohammedia "},{id:2110,name:"Asif lmal-chichaoua"},{id:1898,name:"ASILAH VILLE"},{id:2023,name:"Asni-marrakech"},{id:2087,name:"Assahrij-KELAA DES SRAGHNA"},{id:1827,name:"Assa-VILLE"},{id:2113,name:"Asseratou-chichaoua"},{id:1755,name:"Attaouia"},{id:523,name:"AZEMMOUR"},{id:1948,name:"AZILAL VILLE"},{id:1587,name:"Azla"},{id:1847,name:"AZRO-AIT MELLOUL AGADIR"},{id:327,name:"AZROU-VILLE"},{id:879,name:"Bab Berred"},{id:1709,name:"Bab Taza"},{id:1862,name:"Bani Hadifa-Al Hoceima"},{id:1589,name:"Bdouza"},{id:1236,name:"Bejaad"},{id:1636,name:"Belaagid"},{id:1342,name:"Belfaa"},{id:1752,name:"BELKSIRI"},{id:1625,name:"Ben ahmed-Berrchid"},{id:601,name:"Ben Guerir"},{id:2015,name:"Ben karich-tetouan"},{id:1977,name:"BEN TAYEB- DRIOUCH"},{id:2120,name:"beni elouida-azilal"},{id:907,name:"Beni Ensar"},{id:73,name:"Beni Mellal"},{id:1935,name:"beni oulid - taounate"},{id:2197,name:"beni tadjit"},{id:1926,name:"Beni-Hassan TETOUAN"},{id:1617,name:"Beni-Hassan-Chefchaouen "},{id:511,name:"Benslimane"},{id:1710,name:"Berkane"},{id:1558,name:"BERRECHID VILLE"},{id:1916,name:"Bhalil-sefrou	"},{id:1068,name:"Biougra "},{id:2148,name:"bir gandouz dakhla"},{id:1412,name:"Bir Jdid"},{id:1870,name:"Bir Kouat"},{id:1971,name:"Bir Tam Tam"},{id:1946,name:"Bni Ahmed - chefchaouen"},{id:1611,name:"Bni Ayat - Beni-Mellal"},{id:1489,name:"Bni Bouayach"},{id:1861,name:"Bni Boufrah-Al Hoceima"},{id:1820,name:"Bni Chiker"},{id:2072,name:"Bni Darkoul-chefchaouen"},{id:1794,name:"Bni Drar"},{id:1620,name:"Bni Yakhlef"},{id:1685,name:"bouanane-tetoun"},{id:2117,name:"bouanga-chichaoua"},{id:1842,name:"BOUARFA"},{id:1575,name:"Bouderbala-MEKNES"},{id:1785,name:"Boudnib"},{id:773,name:"BOUFKRANE"},{id:1934,name:"bouhouda - taounate"},{id:1828,name:"Bouizakarne-VILLE"},{id:91,name:"Boujdour"},{id:984,name:"Boujniba"},{id:1779,name:"boukidan"},{id:1988,name:"BOUKNADEL"},{id:1690,name:"Boulanouare"},{id:2131,name:"Boulemane-azrou"},{id:1531,name:"Boumaln dads - tinghir"},{id:1138,name:"Boumia"},{id:1542,name:"Bounaamane-TIZNIT"},{id:1739,name:"Bounouar-khouribga"},{id:2193,name:"Bournazel-casablanca"},{id:421,name:"BOUSKOURA"},{id:1884,name:"Boussmssad-meknes"},{id:472,name:"BOUZNIKA"},{id:1604,name:"Bradia - Beni-Mellal"},{id:1902,name:"Brych-ASILAH"},{id:271,name:"Cabo Negro"},{id:2178,name:"Casablanca – 2 Mars"},{id:2188,name:"Casablanca – Ain Borja"},{id:2180,name:"Casablanca – Ain Chock"},{id:2173,name:"Casablanca – Ain Diab"},{id:2184,name:"Casablanca – Ain Sebaa"},{id:2185,name:"Casablanca – Anassi"},{id:2190,name:"Casablanca – Anfa"},{id:2170,name:"Casablanca – Beauséjour"},{id:2183,name:"Casablanca – Bernoussi"},{id:2172,name:"Casablanca – Bourgogne"},{id:2181,name:"Casablanca – Californie"},{id:2174,name:"Casablanca – Centre Ville"},{id:2175,name:"Casablanca – Derb Omar"},{id:2176,name:"Casablanca – Derb Sultan"},{id:2182,name:"Casablanca – Hay Hassani"},{id:2187,name:"Casablanca – Hay Mohammadi"},{id:2166,name:"Casablanca – Lissasfa"},{id:2179,name:"Casablanca – Maarif"},{id:2167,name:"Casablanca – Moulay Rachid"},{id:2171,name:"Casablanca – Ouasis"},{id:2177,name:"Casablanca – Oulfa"},{id:2189,name:"Casablanca – Roches Noires"},{id:2169,name:"Casablanca – Sbata"},{id:2165,name:"Casablanca – Sidi Maarouf"},{id:2186,name:"Casablanca – Sidi Moumen"},{id:2168,name:"Casablanca – Sidi Othmane"},{id:2156,name:"centre 44 - marrakech"},{id:1804,name:"Chaibate-el jadida"},{id:583,name:"Chefchaouen"},{id:1145,name:"CHELLALAT"},{id:1648,name:"Chichaoua-VILLE"},{id:1641,name:"Chouiter"},{id:1616,name:"CHRAFAT-Chefchaouen"},{id:103,name:"Dakhla"},{id:1959,name:"Daliya_ksar sghir"},{id:415,name:"DAR BOUAZZA"},{id:1854,name:"Dar el Amri-Sidi Sliman"},{id:2010,name:"DAR EL GADARI"},{id:1978,name:"DAR EL KABDANI-DRIOUCH"},{id:1602,name:"Dar Ould Zidouh"},{id:493,name:"DAROUA"},{id:1715,name:"dcheira"},{id:2121,name:"DEBDOU"},{id:1756,name:"Demnate"},{id:1930,name:"Derdara-Chefchaouen"},{id:2069,name:"Derdara-taroudant"},{id:1905,name:"Dghaliyn-ASILAH"},{id:1958,name:"Diki_ksar sghir"},{id:1661,name:"Dkhissa-meknes"},{id:1953,name:"Dlalha"},{id:1673,name:"Douar Boumaiz"},{id:2108,name:"Douar jdida-chichaoua"},{id:2047,name:"DOUAR LKASIT-NADOR"},{id:2046,name:"Douar Rja Fellah-nador"},{id:2105,name:"Douar si omara-chichaoua"},{id:2021,name:"douar Zliligue-fes"},{id:2017,name:"Douiyat-fes"},{id:1328,name:"Drarga"},{id:1974,name:"DRIOUCH VILLE"},{id:2142,name:"Echammaia-youssoufia"},{id:1858,name:"El aouama-tanger"},{id:2147,name:"el argoub-dakhla"},{id:1734,name:"El Borj-KHENIFRA"},{id:2198,name:"El Borouj ville"},{id:2054,name:"El boura-taroudant"},{id:1627,name:"El Gara-Berrchid"},{id:1894,name:"EL HALHAL MEDIOUNA"},{id:2053,name:"El houmer-taroudant"},{id:109,name:"El Jadida"},{id:1731,name:"El Kebab-KHENIFRA"},{id:1601,name:"El Ksiba - Beni-Mellal"},{id:1543,name:"El Maader El Kabir-TIZNIT"},{id:1243,name:"El Mansouria"},{id:1969,name:"El Menzel - Sefrou	"},{id:1791,name:"El Ouatia"},{id:1363,name:"ElHajeb VILLE"},{id:1257,name:"Erfoud VILLE"},{id:607,name:"ERRACHIDIA"},{id:403,name:"ERRAHMA VILLE"},{id:1728,name:"Essaouira الصويرة"},{id:1792,name:"Essemara-السمارة"},{id:1967,name:"Ezzhiliga"},{id:1701,name:"Fam El Hisn-tata"},{id:1819,name:"ferkhana-nador"},{id:127,name:"Fes"},{id:1841,name:"FIGUIG"},{id:133,name:"Fnideq"},{id:2107,name:"Forina-chichaoua"},{id:1951,name:"foum jamaa-Azilal	"},{id:1741,name:"Foum Oudi-زاوية "},{id:1700,name:"Foum Zguid"},{id:1881,name:"Fouwarat-meknes"},{id:139,name:"Fquih Ben Salah"},{id:2088,name:"Fraita-kelaa des sraghna"},{id:1942,name:"galaz - taounate"},{id:1580,name:"Gfifat"},{id:1920,name:"Ghafsai"},{id:2162,name:"Ghmat-marrakech"},{id:1632,name:"Gouassem-VILLE"},{id:1286,name:"Goulmima-errachidia"},{id:1788,name:"Gourrama"},{id:1824,name:"Guelmim-ville"},{id:1873,name:"Guercif"},{id:2149,name:"guerguerat-DAKHLA"},{id:1723,name:"Guigou-Azrou"},{id:1683,name:"Guisser-settat"},{id:1839,name:"Had bouhssoussen"},{id:1868,name:"Had Draa"},{id:1556,name:"Had Hrara-SAFI"},{id:1572,name:"Had Kourt"},{id:1900,name:"Had lgharbiya-ASILAH"},{id:1911,name:"Had Oulad Aissa"},{id:724,name:"had soualem"},{id:1569,name:"HAD WLAD FRAJ"},{id:2135,name:"Hadada – Youssoufia"},{id:2005,name:"Hadd Ouled Jelloul-TAZI"},{id:1943,name:"hajria - taounate"},{id:2080,name:"Harat el morabitine-tinghir"},{id:1996,name:"HARHOURA"},{id:1737,name:"Hattane-Khouribga "},{id:1321,name:"Houara"},{id:1608,name:"idi Jaber-Beni-Mellal "},{id:2043,name:"IEASSEN-nador"},{id:333,name:"IFRAN"},{id:2195,name:"ighloud-echemmaia"},{id:2039,name:"IGHMARIYIN-nador"},{id:2104,name:"Ighoud-chichaoua"},{id:2060,name:"ighram-taroudant"},{id:1965,name:"ighrem Nougdal-Ouarzazate "},{id:2031,name:"IHDADEN-nador"},{id:2034,name:"IMACHROUBEN-nador"},{id:2035,name:"IMEHARFEN-nador"},{id:1598,name:"Imgon-Tinghir "},{id:2013,name:"Imi Ouaddar-agadir"},{id:2092,name:"iminifri - kelaa des sraghna"},{id:2151,name:"Iminitanoute"},{id:339,name:"IMOUZAR KANDRE"},{id:2132,name:"imouzzar marmoucha-azrou"},{id:2123,name:"imsouane-agadir"},{id:1482,name:"imzouren"},{id:2143,name:"Inchaden-agadir"},{id:151,name:"Inzegane"},{id:2033,name:"ISAKKAJEN-nador"},{id:1702,name:"Issafen-tata"},{id:1692,name:"Issaguen"},{id:1786,name:"ITZER"},{id:2029,name:"JAADAR-nador"},{id:1784,name:"Jamaat foko-Berrchid"},{id:2096,name:"Jamaat larracha - Kelaâ des Sraghna"},{id:1778,name:"Jamaat Riah-Berrchid"},{id:427,name:"Jamaat shaim"},{id:2075,name:"Jaqma-berrchid"},{id:1925,name:"JEBHA"},{id:1384,name:"Jerada"},{id:1903,name:"Jilaliya-ASILAH"},{id:1571,name:"Jorf El Melha-OUZZANE"},{id:1564,name:"Jorf Sefar"},{id:2160,name:"Jorf-erfoud"},{id:2093,name:"Jwala-kelaa des sraghna"},{id:1687,name:"Kabila"},{id:2048,name:"KACHADIA-NADOR"},{id:1732,name:"Kaf Nsour-KHENIRA"},{id:1989,name:"kamouni"},{id:1933,name:"kantra askar - taounate"},{id:1555,name:"Kariat Arkman‎-Nador"},{id:1468,name:"Kariat Ba Mohamed"},{id:157,name:"Kasba Tadla"},{id:2081,name:"Kasba tadla-oulad yaich-benimellal"},{id:2082,name:"Kasba tadla-oulad youssef-beni mellal"},{id:1980,name:"Kasita-DRIOUCH"},{id:1754,name:"Kelâa des Sraghna"},{id:1391,name:"Kelâat M Gouna-قلعة امڭونة"},{id:949,name:"KELIAA"},{id:1089,name:"KENITRA VILLE"},{id:2025,name:"Ketama-houcima"},{id:1929,name:"Khamis M Diq-chefchaouen"},{id:2065,name:"Khdadra-ksar el kbir"},{id:1669,name:"Khemis Sahel"},{id:1750,name:"khemis zemamra"},{id:1271,name:"Khemisset ville"},{id:1671,name:"Khenichet-SIDI KACEM"},{id:1711,name:"KHENIFRA VILLE"},{id:1932,name:"Khlalfa-Taounate"},{id:2139,name:"Khnoufa – Youssoufia"},{id:169,name:"Khouribga"},{id:2140,name:"Khwalqa – Youssoufia"},{id:2070,name:"khzana-chefchaouen"},{id:1805,name:"Kouassem-el jadida"},{id:1908,name:"Ksar El Kebir"},{id:1919,name:"ksar sghir"},{id:1889,name:"Kwidar-meknes"},{id:1990,name:"LAARJATE"},{id:886,name:"LAAROUI"},{id:2125,name:"Laâtamna"},{id:2094,name:"Laâtamna-kelaa des sraghna"},{id:1832,name:"LAAYOUNE-PLAYA"},{id:1831,name:"LAAYOUNE-PORT"},{id:1830,name:"Laayoune-ville"},{id:2192,name:"Lahraouyine-casablanca"},{id:1906,name:"Lakhssas"},{id:2111,name:"Lalla aziza-chichaoua"},{id:1753,name:"Lalla Mimouna"},{id:1766,name:"Lalla Takerkoust"},{id:2129,name:"Lamriss"},{id:1599,name:"Laouamra"},{id:187,name:"Larache"},{id:1398,name:"Layoun cherkia-العيون الشرقية"},{id:1733,name:"Lehri-KHENIFRA"},{id:801,name:"LHAJ KADOUR VILLE"},{id:1567,name:"Lhawzia-JADIDA"},{id:2091,name:"Lhmadna-kelaa des sraghna"},{id:1893,name:"lkhyayta-had soualem"},{id:2154,name:"Lmakina-imintanout"},{id:794,name:"LMHAYA"},{id:2159,name:"lmnabha-marrakech"},{id:1955,name:"Lmnar Park-ksar sghir"},{id:2032,name:"LOMMAL-nador"},{id:2137,name:"Louihat – Youssoufia"},{id:1561,name:"Louizia"},{id:1890,name:"Lozin-meknes"},{id:193,name:"M Diq"},{id:1991,name:"MAAMORA"},{id:1544,name:"Maaziz"},{id:2163,name:"Madagh-berkane"},{id:1904,name:"Marghouba-ASILAH"},{id:1686,name:"marina smir"},{id:199,name:"Marrakech"},{id:205,name:"Martil"},{id:1768,name:"Marzouga"},{id:1656,name:"Masmouda - Ouazzane"},{id:2001,name:"Massa"},{id:2014,name:"massa chtouka-agadir"},{id:1565,name:"Mazagan"},{id:2126,name:"MDAR"},{id:571,name:"Mediouna"},{id:1096,name:"MEHDIA VILLE"},{id:2152,name:"Mejjat-imintanout"},{id:1846,name:"Mejjat-meknes"},{id:211,name:"Meknes"},{id:2150,name:"MELJAW-ASILAH"},{id:1999,name:"MERS EL KHIR"},{id:1945,name:"mezraoua - taounate"},{id:1131,name:"MHamid El Ghizlane"},{id:1975,name:"Midar-Driouch"},{id:535,name:"MIDELT"},{id:1623,name:"Mimosa-mohammedia "},{id:1782,name:"mirleft"},{id:1264,name:"Missour"},{id:1895,name:"MKANSA-MEDIOUNA"},{id:2007,name:"Mograne-TAZI"},{id:345,name:"Mohammedia"},{id:787,name:"MOLY DRISSE ZARHOUNE"},{id:529,name:"MOULAY ABDELLAH"},{id:1840,name:"Moulay bouazza khenifra"},{id:1954,name:"moulay bousselham"},{id:1440,name:"Moulay Yaâcoub"},{id:1720,name:"Mrirt Ville"},{id:1712,name:"Mrirte"},{id:1566,name:"Msawar Raso"},{id:1597,name:"Msemrir-Tinghir"},{id:2153,name:"mzouda-imintanout"},{id:1736,name:"Mzoudia"},{id:217,name:"Nador"},{id:2109,name:"Nfifa-chichaoua"},{id:1760,name:"NKob Zagora"},{id:433,name:"Nouaceur"},{id:2058,name:"nouail-taroudant"},{id:1956,name:"Nwinwich_ksar sghir"},{id:1886,name:"Nzala-meknes"},{id:2097,name:"Nzalat Laadam-benguerir"},{id:2061,name:"nzalat laadam-benguerir"},{id:1639,name:"Ouahat Sidi Brahim"},{id:2040,name:"OUAHDANA-nador"},{id:1300,name:"OUALMES VILLE"},{id:1950,name:"ouaouizeght-AZILAL	"},{id:1838,name:"Ouaoumana"},{id:223,name:"Ouarzazat"},{id:1040,name:"Ouazzane"},{id:1560,name:"OUDAYA-Marrakech"},{id:1876,name:"Oued Amlil"},{id:1688,name:"Oued Laou"},{id:766,name:"Oued Zem"},{id:229,name:"Oujda"},{id:1777,name:"Oulad Abbou-Berrchid"},{id:2042,name:"OULAD AISSA-nador"},{id:2083,name:"oulad Ali-fkih bensaleh-beni mellal"},{id:1603,name:"Oulad Ayad"},{id:1584,name:"Oulad Berhil"},{id:2051,name:"Oulad brahim-taroudant"},{id:1581,name:"Oulad Dahou"},{id:1745,name:"Oulad Hamdane-El Jadida"},{id:2020,name:"Oulad Hammou-fes"},{id:2124,name:"Oulad hassoun-marrakech"},{id:1541,name:"oulad jerrar-Tiznit"},{id:2090,name:"Oulad Khallouf -Kelaâ des Sraghna"},{id:1743,name:"Oulad M barek-Beni Mellal"},{id:2059,name:"oulad mhela-taroudant"},{id:1612,name:"Oulad Said-Beni Mellal"},{id:1682,name:"Oulad Said-settat"},{id:1892,name:"Oulad Salah-bouskoura"},{id:2067,name:"Oulad Sbaita-assilah"},{id:2019,name:"Oulad Tayeb-fes"},{id:956,name:"Oulad Teima"},{id:2056,name:"oulad terna-taroudant"},{id:2100,name:"Oulad Yaïch-chichaoua"},{id:1609,name:"Oulad Zmam - Beni-Mellal"},{id:1637,name:"OULED BEN RAHMOUN"},{id:1672,name:"Ouled Boutabet"},{id:2158,name:"Ouled dlim - marrakech"},{id:1744,name:"Ouled Moussa-Beni Mellal"},{id:2068,name:"Ouled riahi-assilah"},{id:2041,name:"OULED SALEM-NADOR"},{id:1986,name:"OUM AZZA	"},{id:1869,name:"ounagha"},{id:1631,name:"Ourika-VILLE"},{id:1944,name:"ourtzagh - taounate"},{id:1628,name:"Outat El Haj"},{id:1867,name:"ouzioua"},{id:1621,name:"Plage David-Bouznika"},{id:2036,name:"POBLAW-nador"},{id:2045,name:"Quartier Al Boustane-nador"},{id:2157,name:"Quetara- marrakech"},{id:1984,name:"Rabat"},{id:2136,name:"Ras El Ain – Youssoufia"},{id:2118,name:"Ras El Ma-berkan"},{id:1454,name:"Ras El Ma-FES"},{id:1972,name:"Ras Tabouda"},{id:1968,name:"Ribate El Kheir"},{id:619,name:"RICHE-02"},{id:1250,name:"RISSANI VILLE"},{id:1314,name:"ROMMANI VILLE"},{id:1860,name:"Rouadi-Al Hoceima"},{id:2030,name:"ROUISSI-nador"},{id:1762,name:"SAAIDIA"},{id:61,name:"Safi"},{id:2063,name:"Salama-ksar el kbir"},{id:1982,name:"SALE"},{id:1983,name:"Sale El Jadida"},{id:2101,name:"Samba-chichaoua"},{id:780,name:"Sbaa Ayoune"},{id:2134,name:"Sbiaat – Youssoufia"},{id:1545,name:"Sebt El Guerdane"},{id:439,name:"SEBT GZOULA"},{id:2027,name:"Sebt Jahjouhe-meknes"},{id:2071,name:"sebt malha-chefchaouen"},{id:1747,name:"Sebt Saiss"},{id:1914,name:"sefrou"},{id:900,name:"Segangan-nador"},{id:2076,name:"sehoul-sale"},{id:893,name:"Selouane"},{id:1651,name:"Settate"},{id:1973,name:"Sfassif-khemisset"},{id:1697,name:"Sid L Mokhtar"},{id:1626,name:"Sid Zouine"},{id:370,name:"sidi aadi - azrou"},{id:1746,name:"Sidi Abbad"},{id:2089,name:"Sidi Aissa Ben Slimane-kelaa des sraghna"},{id:1607,name:"Sidi Aissa-Beni-Mellal"},{id:2006,name:"Sidi Al Kamel-TAZI"},{id:2024,name:"Sidi ali ben hamdoch-jadida"},{id:1992,name:"Sidi Allal El Bahraoui	"},{id:2002,name:"sidi Allal Tazi"},{id:1772,name:"Sidi Ayache"},{id:935,name:"Sidi Bennour"},{id:1640,name:"Sidi Bou Othmane-VILLE"},{id:2164,name:"sidi bouhriya-berkane"},{id:1563,name:"Sidi Bouzid-EL JADIDA"},{id:1767,name:"Sidi Bouzid-SAFI"},{id:1735,name:"Sidi Chiker"},{id:2138,name:"Sidi Chiker – Youssoufia"},{id:2141,name:"sidi el aidi-berrchid"},{id:1941,name:"sidi el makhfi - taounate"},{id:1638,name:"Sidi Ghiat"},{id:1783,name:"Sidi Hajjaj-Berrchid"},{id:1419,name:"sidi hajjaj-casa"},{id:1447,name:"Sidi Harazem"},{id:1826,name:"SIDI IFNI-VILLE"},{id:457,name:"SIDI KACEM"},{id:1798,name:"SIDI KAML"},{id:1124,name:"Sidi Kaouki-ESSOUIRA"},{id:1899,name:"Sidi lyamani-ASILAH"},{id:1897,name:"Sidi Moussa Ben Ali"},{id:1896,name:"Sidi Moussa El Majdoub"},{id:2050,name:"Sidi moussa lhamri-TAROUDANT"},{id:1866,name:"sidi ouaaziz"},{id:731,name:"Sidi Rahhal"},{id:463,name:"SIDI SLIMAN"},{id:1657,name:"Sidi Taibi"},{id:2011,name:"sidi yahia elgharb"},{id:1998,name:"Sidi Yahya Zaer"},{id:942,name:"Sidi-Bibi"},{id:2018,name:"Skhinate-fes"},{id:1997,name:"SKHIRAT"},{id:1019,name:"Skhour Rehamna"},{id:1812,name:"Skoura-Ouarzazate "},{id:1811,name:"Smimou - Essaouira"},{id:2064,name:"snadla-ksar el kbir"},{id:1644,name:"Souihla-VILLE"},{id:445,name:"Souiria آسفي"},{id:1928,name:"Souk al had Ouazzane"},{id:1751,name:"SOUK LARBAA"},{id:1885,name:"Souk lgor-meknes"},{id:2003,name:"SOUK LHAD ALLAL TAZI"},{id:1356,name:"Souk Sebt Oulad Nemma"},{id:1927,name:"Souk Tlata Tanquoub Ouazzane"},{id:2008,name:"Souk Tlet El Gharb"},{id:1924,name:"STEHAT-OUED LAOU"},{id:2004,name:"SWASIYIN ALAL TAZI"},{id:2191,name:"Tacharouk-casablanca"},{id:1877,name:"Taddart-taza"},{id:2194,name:"Tafetachte-essaouira"},{id:1793,name:"Tafoughalt"},{id:1540,name:"Tafraoute"},{id:1979,name:"Tafrsit-DRIOUCH"},{id:1547,name:"Taghazout"},{id:2078,name:"Taghzot- tinghir ville"},{id:1703,name:"Tagmout-tata"},{id:1668,name:"Tagounite‬-zagora"},{id:1901,name:"Tahadart - ASILAH"},{id:1633,name:"Tahanaout-VILLE"},{id:1931,name:"tahar souk - TAOUNATE"},{id:1875,name:"tahla"},{id:1769,name:"Taliouine"},{id:1871,name:"Talmest"},{id:2196,name:"Talsinnt"},{id:2012,name:"Tamait Izder-agadir"},{id:2057,name:"tamaloukt-taroudant"},{id:1810,name:"Tamanar-Essaouira"},{id:1559,name:"Tamansourt-Marrakech"},{id:409,name:"TAMARIS"},{id:1667,name:"Tamegroute-zagora"},{id:1757,name:"Tamellalt"},{id:1647,name:"Tamesluht- VILLE"},{id:1994,name:"TAMESNA-TEMARA"},{id:1579,name:"Tamraght"},{id:1548,name:"Tamraght-Agadir"},{id:2122,name:"Tamri-agadir"},{id:1759,name:"Tamzmout zagora"},{id:1949,name:"TANANTE-AZILAL	"},{id:2161,name:"Tandit-outat elhaj"},{id:289,name:"Tanger"},{id:1742,name:"Tanougha-Beni Mellal"},{id:1790,name:"TANTAN"},{id:2044,name:"TAOUIMA-NADOR"},{id:1915,name:"taounate"},{id:1874,name:"Taourirt"},{id:1835,name:"Tarfaya ville"},{id:1691,name:"targuist"},{id:382,name:"Taroudant"},{id:2095,name:"Tassawt-kelaa des sraghna"},{id:1635,name:"Tassoultant-VILLE"},{id:1696,name:"Tata"},{id:808,name:"TAWJTAT"},{id:1758,name:"Tazarine"},{id:1872,name:"TAZA-VILLE"},{id:2055,name:"tazmourt-taroudant"},{id:1704,name:"Taznakht"},{id:1993,name:"TEMARA"},{id:2128,name:"temsamane-Driouch"},{id:1576,name:"Temsia-agadir"},{id:1653,name:"Teroual - Ouazzane"},{id:313,name:"Tetouan"},{id:1748,name:"Tidas-Khemisset"},{id:1278,name:"Tiflet Ville"},{id:2145,name:"Tifnit-agadir"},{id:1719,name:"Tighassaline ville"},{id:2084,name:"TIGHMI-tiznit"},{id:1716,name:"Tikiouine"},{id:1721,name:"Timahdite"},{id:1740,name:"Timoulilt-Béni Mellal"},{id:1582,name:"Tin Mansour"},{id:2066,name:"Tindafel-assilah"},{id:1293,name:"Tinejdad Ville"},{id:1475,name:"Tinghir ville"},{id:1907,name:"Tioughza"},{id:1940,name:"tissa - taounate"},{id:1698,name:"Tissint-tata"},{id:478,name:"TIT MELLIL"},{id:1864,name:"tizi nisly-Beni Mellal"},{id:1879,name:"Tizi Ousli"},{id:376,name:"TIZNIT"},{id:1976,name:"Tiztotine-DRIOUCH"},{id:1592,name:"Tlat Bouaris"},{id:2074,name:"Tlat lghnimiyin-berrchid"},{id:1738,name:"Tlat Loulad-fini"},{id:1947,name:"Tlet El Hanchane"},{id:1591,name:"Tleta Bouguedra"},{id:1834,name:"Tnin beni khelloug-settat"},{id:1936,name:"tnin beni onjel - taounate"},{id:1557,name:"TNIN EL GHIATE-SAFI"},{id:2103,name:"Tnin jnan bih-chichaoua"},{id:1650,name:"Tnine Chtouka el jadida"},{id:1590,name:"Tnine Gharbia"},{id:1577,name:"tohmo agadir"},{id:2049,name:"Toundout-OUARZAZET"},{id:1963,name:"Tounfite-Midelt"},{id:1960,name:"Wad lmarssa"},{id:1957,name:"Wadalyane_ksar sghir"},{id:970,name:"Walidia"},{id:2086,name:"wargi-kelaa sraghna"},{id:1891,name:"wislan-meknes"},{id:2009,name:"Wlad amer-ALAL TAZI"},{id:1855,name:"Wlad Ghanem"},{id:1887,name:"Wlad sidi yhya-meknes"},{id:1888,name:"wlad slim-meknes"},{id:1985,name:"Youssoufia-RABAT	"},{id:2133,name:"youssoufia-ville"},{id:1033,name:"ZAGORA"},{id:1829,name:"Zag-VILLE"},{id:1594,name:"Zaida"},{id:1970,name:"Zaouiat Bougrine"},{id:1047,name:"Zaouiat Cheikh"},{id:1568,name:"Zaouit Sidi Smail"},{id:1536,name:"zayou"},{id:1962,name:"ZGOUTA"},{id:2022,name:"Zouada-LAARACHE"},{id:1654,name:"Zoumi-Ouazzane"},{id:1937,name:"zrizer - taounate"}];
+const WOO_URL = 'https://fatbikes.ma';
+const WOO_CK  = 'ck_dd100912340ceb1429b19cb0d0c083bf0c392930';
+const WOO_CS  = 'cs_8b86bac0b31cc150133dde42367b3f6ec02b2996';
+
+const sheetData = [
+  {date:'17/10/2025',num:'17356',nom:'Adil Chakhtouna',email:'adilchakhtouna4@gmail.com',tel:'',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Taza',adres:'',bron:'whatsapp'},
+  {date:'17/10/2025',num:'17357',nom:'Mehdi Iraki',email:'mehdi.iraki@gmail.com',tel:'0651991313',prod:'Fatbike ouxi V8 pro',cmd:'Non',raison:'Trop cher',ville:'',adres:'',bron:'whatsapp'},
+  {date:'18/10/2025',num:'17360',nom:'Youness Ziani',email:'souh_ail05@gmail.com',tel:'0661842402',prod:'Troitnette X8',cmd:'Non',raison:'',ville:'',adres:'',bron:'whatsapp'},
+  {date:'19/10/2025',num:'17361',nom:'Abedrahim Lbouti',email:'abdrahim_bou@gmail.com',tel:'0661750294',prod:'Fatbike ouxi V8 pro',cmd:'Non',raison:'',ville:'',adres:'',bron:'whatsapp'},
+  {date:'19/10/2025',num:'17362',nom:'Mounir Ayouch',email:'ayouch.mounir@gmail.com',tel:'0661170056',prod:'Fatbike ouxi V8 pro',cmd:'Non',raison:'',ville:'',adres:'',bron:'whatsapp'},
+  {date:'20/10/2025',num:'17364',nom:'Yahya Rouai',email:'yahyag17@gmail.com',tel:'0668906849',prod:'Troitnette X8',cmd:'Non',raison:'',ville:'Ksar kebir',adres:'',bron:'whatsapp'},
+  {date:'20/10/2025',num:'17365',nom:'Abdelilah Daki',email:'jadrayane2009@gmail.com',tel:'0678788103',prod:'Fatbike ouxi V8 pro',cmd:'non',raison:'',ville:'',adres:'',bron:'whatsapp'},
+  {date:'24/10/2025',num:'17373',nom:'Tayeb Zerroual',email:'zerroual1970@gmail.com',tel:'0613727603',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Bouarfa',adres:'',bron:'whatsapp'},
+  {date:'28/10/2025',num:'17374',nom:'Munir Alhamati',email:'Yazidalhamati10@icloud.com',tel:'0662041189',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Agadir',adres:'',bron:'whatsapp'},
+  {date:'28/10/2025',num:'17375',nom:'Ahmed Jadani',email:'ahmed4star@gmail.com',tel:'0708429995',prod:'Fatbike ouxi V8 pro',cmd:'Non',raison:'',ville:'Ben guerir',adres:'',bron:'whatsapp'},
+  {date:'29/10/2025',num:'17377',nom:'Mohammed Asmar',email:'lotfi_zx@gmail.com',tel:'0664797504',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Casablanca',adres:'',bron:'whatsapp'},
+  {date:'30/10/2025',num:'17378',nom:'Hamza Ameziane',email:'ameziane.ha@gmail.com',tel:'0699716383',prod:'Fatbike ouxi V8 pro',cmd:'Non',raison:'',ville:'',adres:'',bron:'whatsapp'},
+  {date:'10/11/2025',num:'17382',nom:'Fahd Aourz',email:'fahd.aourz88@gmail.com',tel:'0609829271',prod:'Fatbike ouxi V8 pro',cmd:'Non',raison:'',ville:'',adres:'',bron:'whatsapp'},
+  {date:'11/11/2025',num:'17384',nom:'Mohamed Oukhouya',email:'zizo.casablanca1992@gmail.com',tel:'0661709728',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Sidi bibi',adres:'',bron:'whatsapp'},
+  {date:'11/11/2025',num:'17385',nom:'dra Mohammed',email:'dra.ayoub73@gmail.com',tel:'0659348485',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'',ville:'Khouribga',adres:'',bron:'whatsapp'},
+  {date:'',num:'',nom:'Ahmed tonto',email:'-',tel:'0652694878',prod:'Fatbike ouxi V8 pro',cmd:'Oui',raison:'Whatsapp commande',ville:'Casablanca',adres:'',bron:'whatsapp'},
+];
+
+let waOrders = JSON.parse(localStorage.getItem('wa_orders') || '[]');
+let lokaleStatussen = JSON.parse(localStorage.getItem('lokale_statussen') || '{}');
+let wooOrders = [];
+let sortKey = 'date';
+let sortDir = -1;
+let renderedRows = [];
+
+const SECTION_TITLES = { orders:'Bestellingen', analytics:'Analytics', whatsapp:'+ WhatsApp', verzending:'Verzending', instellingen:'Instellingen' };
+
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nav-' + name);
+  if (nb) nb.classList.add('active');
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  const bn = document.getElementById('bn-' + name);
+  if (bn) bn.classList.add('active');
+  document.getElementById('topbar-title').textContent = SECTION_TITLES[name] || '';
+  const rb = document.getElementById('refresh-btn');
+  if (rb) rb.style.display = name === 'orders' ? '' : 'none';
+  if (name === 'verzending') renderVerzending().catch(()=>{});
+}
+
+function getAllOrders() { return [...sheetData, ...waOrders, ...wooOrders]; }
+
+function renderOrders() {
+  const search  = (document.getElementById('search').value || '').toLowerCase();
+  const fStatus = (document.getElementById('f-status').value || '').toLowerCase();
+  const fBron   = (document.getElementById('f-bron').value || '').toLowerCase();
+
+  let rows = getAllOrders().filter(o => {
+    const ms = !search || (o.nom||'').toLowerCase().includes(search) || (o.ville||'').toLowerCase().includes(search)
+      || (o.prod||'').toLowerCase().includes(search) || (o.num||'').toLowerCase().includes(search) || (o.tel||'').toLowerCase().includes(search);
+    const mst = !fStatus || effectiefCmd(o) === fStatus;
+    const mb  = !fBron   || (o.bron||'').toLowerCase() === fBron;
+    return ms && mst && mb;
+  });
+
+  rows.sort((a, b) => {
+    let av = a[sortKey]||'', bv = b[sortKey]||'';
+    if (sortKey === 'date') { av = av.split('/').reverse().join(''); bv = bv.split('/').reverse().join(''); }
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+
+  renderedRows = rows;
+  const tbody = document.getElementById('tbody');
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">Geen orders gevonden</td></tr>';
+    document.getElementById('count-label').textContent = '';
+    renderStats();
+    return;
+  }
+
+  tbody.innerHTML = rows.map((o, i) => {
+    const eff = effectiefCmd(o);
+    const bb = o.bron === 'whatsapp' ? 'b-wa' : 'b-woo';
+    let badge, acties;
+    if (eff === 'oui') {
+      badge = '<span class="badge b-oui">✅ Goedgekeurd</span>';
+      acties = `<button class="inv-btn" onclick="naarVerzending('${o.num}')">📦 Verzenden</button> <button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})">📄</button>`;
+    } else if (eff === 'non') {
+      badge = '<span class="badge b-non">❌ Geweigerd</span>';
+      acties = `<button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})">📄</button>`;
+    } else {
+      badge = '<span class="badge b-bellen">📞 Bellen</span>';
+      acties = `<button class="btn-ok" onclick="keurGoed('${o.num}')">✅ OK</button> <button class="btn-nee" onclick="weigerOrder('${o.num}')">❌ Nee</button>`;
+    }
+    const trClass = eff === 'bellen' ? ' class="rij-bellen"' : '';
+    return `<tr${trClass}>
+      <td class="mono">${o.date||'-'}</td>
+      <td class="mono">${o.num||'-'}</td>
+      <td title="${o.nom||''}">${o.nom||'-'}</td>
+      <td class="mono">${o.tel||'-'}</td>
+      <td title="${o.prod||''}">${o.prod||'-'}</td>
+      <td>${badge}</td>
+      <td>${o.ville||'-'}</td>
+      <td><span class="badge ${bb}">${o.bron||'-'}</span></td>
+      <td style="white-space:nowrap">${acties}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('count-label').textContent = `${rows.length} order${rows.length !== 1 ? 's' : ''}`;
+  renderStats();
+}
+
+function renderStats() {
+  const all     = getAllOrders();
+  const bellen  = all.filter(o => effectiefCmd(o) === 'bellen').length;
+  const oui     = all.filter(o => effectiefCmd(o) === 'oui').length;
+  const non     = all.filter(o => effectiefCmd(o) === 'non').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Totaal</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat-card" style="border-color:rgba(255,107,53,0.3)"><div class="stat-label">📞 Te bellen</div><div class="stat-value orange">${bellen}</div></div>
+    <div class="stat-card"><div class="stat-label">✅ Goedgekeurd</div><div class="stat-value green">${oui}</div></div>
+    <div class="stat-card"><div class="stat-label">❌ Geweigerd</div><div class="stat-value red">${non}</div></div>`;
+}
+
+function sortBy(key) {
+  sortDir = sortKey === key ? sortDir * -1 : -1;
+  sortKey = key;
+  renderOrders();
+}
+
+// FACTUUR
+async function openInvoice(idx) {
+  const o = renderedRows[idx];
+  if (!o) return;
+  document.getElementById('inv-num').textContent   = o.num   ? '#' + o.num : '—';
+  document.getElementById('inv-date').textContent  = o.date  || '—';
+  document.getElementById('inv-nom').textContent   = o.nom   || '—';
+  document.getElementById('inv-tel').textContent   = o.tel   || '—';
+  document.getElementById('inv-email').textContent = o.email || '—';
+  document.getElementById('inv-ville').textContent = o.ville || '—';
+  document.getElementById('inv-adres').textContent = o.adres || '—';
+  document.getElementById('inv-prod').textContent  = o.prod  || '—';
+  document.getElementById('inv-cmd').textContent   = o.cmd   || '—';
+  document.getElementById('inv-price').textContent = 'Laden...';
+  document.getElementById('invoice-modal').classList.remove('hidden');
+
+  if (o.price) {
+    document.getElementById('inv-price').textContent = fmtPrice(o.price);
+    return;
+  }
+  try {
+    let price = null;
+    if (o.woo_id) {
+      const r = await fetch(`${WOO_URL}/wp-json/wc/v3/orders/${o.woo_id}?consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`);
+      const d = await r.json();
+      price = d.total;
+    } else {
+      const r = await fetch(`${WOO_URL}/wp-json/wc/v3/products?search=${encodeURIComponent(o.prod)}&per_page=3&consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`);
+      const d = await r.json();
+      if (Array.isArray(d) && d.length) price = d[0].price;
+    }
+    document.getElementById('inv-price').textContent = price ? fmtPrice(price) : '—';
+  } catch(e) {
+    document.getElementById('inv-price').textContent = '—';
+  }
+}
+
+function fmtPrice(p) {
+  return parseFloat(p).toLocaleString('fr-MA', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' MAD';
+}
+
+function closeInvoice() {
+  document.getElementById('invoice-modal').classList.add('hidden');
+}
+
+// GA4
+function connectGA4() {
+  showGA4Dashboard();
+  loadGA4Data();
+}
+
+function disconnectGA4() {
+  localStorage.removeItem('ga4_property_id');
+  localStorage.removeItem('ga4_token');
+  document.getElementById('ga4-dashboard').style.display = 'none';
+  document.getElementById('ga4-setup-block').style.display = '';
+}
+
+function showGA4Dashboard() {
+  document.getElementById('ga4-setup-block').style.display = 'none';
+  document.getElementById('ga4-dashboard').style.display = '';
+}
+
+async function loadGA4Data(forceRefresh) {
+  const CACHE_KEY = 'ga4_cache';
+  const CACHE_TTL = 60 * 60 * 1000; // 1 uur
+
+  if (!forceRefresh) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && Date.now() - cached.ts < CACHE_TTL) {
+        renderGA4(cached.data);
+        return;
+      }
+    } catch {}
+  }
+
+  document.getElementById('ga4-cards').innerHTML = `
+    <div class="analytics-card" style="grid-column:1/-1;text-align:center;padding:1.5rem">
+      <div style="color:var(--text3)">Data laden...</div>
+    </div>`;
+
+  try {
+    const resp = await fetch('api/ga4.php');
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+
+    renderGA4(data);
+  } catch(e) {
+    document.getElementById('ga4-cards').innerHTML = `
+      <div class="analytics-card" style="grid-column:1/-1">
+        <p style="color:var(--red)">Fout: ${e.message}</p>
+      </div>`;
+  }
+}
+
+function renderGA4(data) {
+  const { summary, pages, exits } = data;
+  const vals      = summary.rows?.[0]?.metricValues || [];
+  const sessions  = parseInt(vals[0]?.value || 0).toLocaleString();
+  const users     = parseInt(vals[1]?.value || 0).toLocaleString();
+  const pageviews = parseInt(vals[2]?.value || 0).toLocaleString();
+  const bounce    = vals[3]?.value ? (parseFloat(vals[3].value) * 100).toFixed(1) + '%' : '—';
+
+  document.getElementById('ga4-cards').innerHTML = `
+    <div class="analytics-card"><h4>Sessies (30 dagen)</h4><div class="big">${sessions}</div><div class="sub">Bezoeken</div></div>
+    <div class="analytics-card"><h4>Gebruikers (30 dagen)</h4><div class="big">${users}</div><div class="sub">Unieke bezoekers</div></div>
+    <div class="analytics-card"><h4>Paginaweergaven</h4><div class="big">${pageviews}</div><div class="sub">Totaal</div></div>
+    <div class="analytics-card"><h4>Bouncepercentage</h4><div class="big" style="color:var(--red)">${bounce}</div><div class="sub">Directe afhakers</div></div>`;
+
+  document.getElementById('ga4-pages').innerHTML = (pages.rows||[]).map(r =>
+    `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
+  ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
+
+  document.getElementById('ga4-exits').innerHTML = (exits.rows||[]).map(r =>
+    `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
+  ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
+}
+
+// Check OAuth token in URL hash after redirect (legacy, no longer needed)
+(function checkOAuthCallback() {
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const token = params.get('access_token');
+    if (token) {
+      localStorage.setItem('ga4_token', token);
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+})();
+
+// WHATSAPP
+function saveWhatsapp() {
+  const naam = document.getElementById('wa-naam').value.trim();
+  const tel  = document.getElementById('wa-tel').value.trim();
+  if (!naam || !tel) {
+    document.getElementById('wa-msg').innerHTML = '<div class="msg msg-err">Naam en telefoon zijn verplicht.</div>';
+    return;
+  }
+  const order = {
+    date: new Date().toLocaleDateString('nl-BE'), num: 'WA-' + Date.now(),
+    nom: naam, email: '', tel, prod: document.getElementById('wa-prod').value,
+    cmd: document.getElementById('wa-status').value,
+    raison: document.getElementById('wa-raison').value.trim(),
+    ville: document.getElementById('wa-ville').value.trim(),
+    adres: '', note: document.getElementById('wa-note').value.trim(), bron: 'whatsapp'
+  };
+  waOrders.push(order);
+  localStorage.setItem('wa_orders', JSON.stringify(waOrders));
+  document.getElementById('wa-msg').innerHTML = '<div class="msg msg-ok">Opgeslagen!</div>';
+  ['wa-naam','wa-tel','wa-ville','wa-raison','wa-note'].forEach(id => document.getElementById(id).value = '');
+  setTimeout(() => showSection('orders'), 1000);
+}
+
+function updateApiStatus(ok) {
+  [document.getElementById('status-dot'), document.getElementById('status-dot2')].forEach(d => { if(d) { d.classList.toggle('connected', ok); } });
+  const txt = ok ? 'fatbikes.ma' : 'Verbinding mislukt';
+  [document.getElementById('api-status'), document.getElementById('api-status2')].forEach(el => { if(el) el.textContent = txt; });
+}
+
+async function loadWooOrders(fromRefresh) {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.textContent = '↻ Laden...';
+  try {
+    const resp = await fetch(`${WOO_URL}/wp-json/wc/v3/orders?per_page=100&consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    wooOrders = data.map(o => ({
+      woo_id: o.id,
+      date: o.date_created ? o.date_created.split('T')[0].split('-').reverse().join('/') : '',
+      num: String(o.id),
+      nom: `${o.billing?.first_name||''} ${o.billing?.last_name||''}`.trim(),
+      email: o.billing?.email||'', tel: o.billing?.phone||'',
+      prod: o.line_items?.map(i => i.name).join(', ')||'',
+      price: o.total, cmd: o.status === 'completed' ? 'oui' : (o.status === 'cancelled' || o.status === 'refunded') ? 'non' : 'bellen',
+      raison:'', ville: o.billing?.city||'', adres: o.billing?.address_1||'', bron:'woo'
+    }));
+    updateApiStatus(true);
+    renderOrders();
+  } catch(e) {
+    updateApiStatus(false);
+    if (fromRefresh) alert('WooCommerce laden mislukt: ' + e.message);
+  }
+  if (btn) btn.textContent = '↻ Vernieuwen';
+}
+
+const GA4_PROPERTY_ID = '492800314';
+
+window.addEventListener('DOMContentLoaded', function() {
+  if (sessionStorage.getItem('fb_auth') === '1') {
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+  renderOrders();
+  loadWooOrders(false);
+  // Property ID is hardcoded — always show GA4 dashboard
+  localStorage.setItem('ga4_property_id', GA4_PROPERTY_ID);
+  document.getElementById('ga4-id-input').value = GA4_PROPERTY_ID;
+  showGA4Dashboard();
+  loadGA4Data();
+});
+
+// VERZENDING
+let verzendingen = JSON.parse(localStorage.getItem('verzendingen') || '[]');
+
+
+function laadSteden() {
+  const sel = document.getElementById('oz-stad');
+  sel.innerHTML = OZON_CITIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  return;
+  if(false) { // oude API code bewaard als backup
+  }
+}
+
+async function renderVerzending() {
+  laadSteden();
+
+  const bevestigd = getAllOrders().filter(o => effectiefCmd(o) === 'oui');
+  const verzondNums = verzendingen.map(v => v.num);
+  const teVerzenden = bevestigd.filter(o => !verzondNums.includes(o.num));
+
+  // Stats
+  document.getElementById('verzend-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Te verzenden</div><div class="stat-value orange">${teVerzenden.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Verzonden</div><div class="stat-value green">${verzendingen.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Bevestigd totaal</div><div class="stat-value">${bevestigd.length}</div></div>`;
+
+  // Te verzenden tabel
+  document.getElementById('tbl-te-verzenden').innerHTML = teVerzenden.length
+    ? teVerzenden.map(o => `<tr>
+        <td class="mono">${o.num||'-'}</td>
+        <td title="${o.nom||''}">${o.nom||'-'}</td>
+        <td title="${o.prod||''}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${o.prod||'-'}</td>
+        <td>${o.ville||'-'}</td>
+        <td><button class="inv-btn" onclick="vulZendingIn('${o.num}')">📦 Verzenden</button></td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="5">Alle bevestigde orders zijn verzonden</td></tr>';
+
+  // Verzonden tabel
+  document.getElementById('tbl-verzonden').innerHTML = verzendingen.length
+    ? verzendingen.map(v => `<tr>
+        <td class="mono">${v.num||'-'}</td>
+        <td>${v.naam||'-'}</td>
+        <td class="mono" style="font-size:11px">${v.tracking ? `<span title="${v.tracking}">${v.tracking.substring(0,16)}...</span>` : '—'}</td>
+        <td><span class="badge ${v.status === 'Geleverd' ? 'b-oui' : 'b-woo'}">${v.status||'Onderweg'}</span></td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="4">Nog niets verzonden</td></tr>';
+}
+
+function effectiefCmd(o) {
+  if (lokaleStatussen[o.num]) return lokaleStatussen[o.num];
+  return (o.cmd || '').toLowerCase();
+}
+
+function keurGoed(num) {
+  lokaleStatussen[num] = 'oui';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  renderOrders();
+}
+
+function weigerOrder(num) {
+  lokaleStatussen[num] = 'non';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  renderOrders();
+}
+
+function naarVerzending(num) {
+  showSection('verzending');
+  setTimeout(() => vulZendingIn(num), 150);
+}
+
+function vulZendingIn(num) {
+  const order = getAllOrders().find(o => o.num === num);
+  if (!order) return;
+  document.getElementById('oz-num').value    = order.num   || '';
+  document.getElementById('oz-naam').value   = order.nom   || '';
+  document.getElementById('oz-tel').value    = order.tel   || '';
+  document.getElementById('oz-adres').value  = order.adres || '';
+  document.getElementById('oz-bedrag').value = order.price || '';
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Bestelling ingevuld — controleer en klik op Zending aanmaken.</div>';
+  document.getElementById('oz-num').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function maakZending() {
+  const num    = document.getElementById('oz-num').value.trim();
+  const naam   = document.getElementById('oz-naam').value.trim();
+  const tel    = document.getElementById('oz-tel').value.trim();
+  const cityId = document.getElementById('oz-stad').value;
+  const adres  = document.getElementById('oz-adres').value.trim();
+  const bedrag = document.getElementById('oz-bedrag').value.trim();
+
+  if (!naam || !tel || !cityId) {
+    document.getElementById('oz-msg').innerHTML = '<div class="msg msg-err">Naam, telefoon en stad zijn verplicht.</div>';
+    return;
+  }
+
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Zending aanmaken...</div>';
+
+  try {
+    const resp = await fetch('api/ozon.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiver: naam, tel, cityId, adres, bedrag, num })
+    });
+    const data = await resp.json();
+    if (data.tracking) {
+      const stadNaam = document.getElementById('oz-stad').options[document.getElementById('oz-stad').selectedIndex].text;
+      slaVerzendingOp(num, naam, data.tracking);
+      document.getElementById('oz-msg').innerHTML = `
+        <div class="msg msg-ok" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>✅ Zending aangemaakt! <strong>${data.tracking}</strong></span>
+          <button class="btn btn-save" style="white-space:nowrap" onclick="printLabel('${data.tracking}','${naam.replace(/'/g,"\\'")}','${tel}','${stadNaam}','${adres.replace(/'/g,"\\'")}','${bedrag}')">🖨 Label afdrukken</button>
+        </div>`;
+      return;
+    }
+    throw new Error(data.error || 'Onbekende fout');
+  } catch(e) {
+    document.getElementById('oz-msg').innerHTML = `<div class="msg msg-err">Fout: ${e.message}</div>`;
+  }
+}
+
+async function printLabel(tracking, naam, tel, stad, adres, bedrag) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a6' });
+  const W = 105, H = 148;
+
+  // Achtergrond
+  doc.setFillColor(15, 17, 23);
+  doc.rect(0, 0, W, H, 'F');
+
+  // Header
+  doc.setFillColor(255, 107, 53);
+  doc.rect(0, 0, W, 18, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+  doc.text('Fatbikes.ma', 5, 7);
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  doc.text('Bon de livraison — OzonExpress', 5, 13);
+
+  // QR code genereren
+  const qrDiv = document.createElement('div');
+  qrDiv.style.position = 'absolute'; qrDiv.style.left = '-9999px';
+  document.body.appendChild(qrDiv);
+  new QRCode(qrDiv, { text: tracking, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff' });
+  await new Promise(r => setTimeout(r, 300));
+  const qrCanvas = qrDiv.querySelector('canvas');
+  if (qrCanvas) {
+    const qrImg = qrCanvas.toDataURL('image/png');
+    doc.addImage(qrImg, 'PNG', W/2 - 22, 22, 44, 44);
+  }
+  document.body.removeChild(qrDiv);
+
+  // Tracking nummer
+  doc.setTextColor(255, 107, 53);
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+  doc.text(tracking, W/2, 73, { align: 'center' });
+
+  // Lijn
+  doc.setDrawColor(40, 45, 60);
+  doc.line(5, 78, W-5, 78);
+
+  // Ontvanger
+  doc.setTextColor(140, 143, 168);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('ONTVANGER', 5, 85);
+  doc.setTextColor(240, 240, 240);
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+  doc.text(naam, 5, 92);
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  doc.text(tel, 5, 98);
+  doc.text(stad, 5, 104);
+  if (adres) { doc.setFontSize(7); doc.text(adres, 5, 110, { maxWidth: W-10 }); }
+
+  // Lijn
+  doc.setDrawColor(40, 45, 60);
+  doc.line(5, 118, W-5, 118);
+
+  // Bedrag COD
+  if (bedrag && parseFloat(bedrag) > 0) {
+    doc.setTextColor(140, 143, 168);
+    doc.setFontSize(7);
+    doc.text('MONTANT À ENCAISSER (COD)', 5, 125);
+    doc.setTextColor(62, 207, 142);
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+    doc.text(`${parseFloat(bedrag).toFixed(2)} MAD`, 5, 134);
+  }
+
+  // Footer
+  doc.setFillColor(25, 28, 38);
+  doc.rect(0, H-12, W, 12, 'F');
+  doc.setTextColor(85, 91, 114);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('OzonExpress — client.ozonlivraison.ma', W/2, H-5, { align: 'center' });
+
+  doc.save(`label-${tracking}.pdf`);
+}
+
+function slaVerzendingOp(num, naam, tracking) {
+  verzendingen.push({ num, naam, tracking, status: tracking ? 'Onderweg' : 'Handmatig', datum: new Date().toLocaleDateString('nl-BE') });
+  localStorage.setItem('verzendingen', JSON.stringify(verzendingen));
+  renderVerzending();
+}
+
+// LOGIN
+(function() {
+  var PASS = 'Welkom28';
+  window.checkLogin = function() {
+    var val = document.getElementById('pw-input').value;
+    if (val === PASS) {
+      document.getElementById('login-overlay').style.display = 'none';
+      sessionStorage.setItem('fb_auth', '1');
+    } else {
+      document.getElementById('login-error').textContent = 'Onjuist wachtwoord.';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  };
+})();
+</script>
+</body>
+</html>
