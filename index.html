@@ -470,30 +470,46 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <div class="form-group">
             <label>Stad</label>
-            <input type="text" id="oz-stad" placeholder="Casablanca"/>
+            <select id="oz-stad">
+              <option value="1">Casablanca</option>
+              <option value="2">Rabat</option>
+              <option value="3">Marrakech</option>
+              <option value="4">Fès</option>
+              <option value="5">Tanger</option>
+              <option value="6">Agadir</option>
+              <option value="7">Meknès</option>
+              <option value="8">Oujda</option>
+              <option value="9">Kenitra</option>
+              <option value="10">Tétouan</option>
+              <option value="11">Safi</option>
+              <option value="12">El Jadida</option>
+              <option value="13">Béni Mellal</option>
+              <option value="14">Nador</option>
+              <option value="15">Settat</option>
+              <option value="16">Khouribga</option>
+              <option value="17">Taza</option>
+              <option value="18">Larache</option>
+              <option value="19">Ksar El Kebir</option>
+              <option value="20">Guelmim</option>
+              <option value="21">Mohammedia</option>
+              <option value="22">Salé</option>
+              <option value="23">Berrechid</option>
+              <option value="24">Ben Guerir</option>
+              <option value="25">Bouarfa</option>
+              <option value="26">Sidi Bouzid</option>
+            </select>
           </div>
           <div class="form-group full">
             <label>Adres</label>
             <input type="text" id="oz-adres" placeholder="Rue Mohammed V, nr 12"/>
           </div>
           <div class="form-group">
-            <label>Product / Omschrijving</label>
-            <input type="text" id="oz-prod" placeholder="Fatbike ouxi V8 pro"/>
-          </div>
-          <div class="form-group">
-            <label>Gewicht (kg)</label>
-            <input type="number" id="oz-gewicht" placeholder="25" value="25"/>
-          </div>
-          <div class="form-group">
             <label>Bedrag (MAD)</label>
             <input type="number" id="oz-bedrag" placeholder="0"/>
           </div>
           <div class="form-group">
-            <label>Betaling bij levering</label>
-            <select id="oz-cod">
-              <option value="1">Ja — klant betaalt bij ontvangst</option>
-              <option value="0">Nee — al betaald</option>
-            </select>
+            <label>Aantal colli</label>
+            <input type="number" id="oz-stock" placeholder="1" value="1"/>
           </div>
         </div>
         <div class="form-actions">
@@ -900,31 +916,27 @@ function renderVerzending() {
 function vulZendingIn(num) {
   const order = getAllOrders().find(o => o.num === num);
   if (!order) return;
-  document.getElementById('oz-num').value   = order.num  || '';
-  document.getElementById('oz-naam').value  = order.nom  || '';
-  document.getElementById('oz-tel').value   = order.tel  || '';
-  document.getElementById('oz-stad').value  = order.ville|| '';
-  document.getElementById('oz-adres').value = order.adres|| '';
-  document.getElementById('oz-prod').value  = order.prod || '';
-  document.getElementById('oz-bedrag').value = order.price|| '';
+  document.getElementById('oz-num').value    = order.num   || '';
+  document.getElementById('oz-naam').value   = order.nom   || '';
+  document.getElementById('oz-tel').value    = order.tel   || '';
+  document.getElementById('oz-adres').value  = order.adres || '';
+  document.getElementById('oz-bedrag').value = order.price || '';
   document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Bestelling ingevuld — controleer en klik op Zending aanmaken.</div>';
   document.getElementById('oz-num').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function maakZending() {
-  const num    = document.getElementById('oz-num').value.trim();
-  const naam   = document.getElementById('oz-naam').value.trim();
-  const tel    = document.getElementById('oz-tel').value.trim();
-  const stad   = document.getElementById('oz-stad').value.trim();
-  const adres  = document.getElementById('oz-adres').value.trim();
-  const prod   = document.getElementById('oz-prod').value.trim();
-  const gewicht= document.getElementById('oz-gewicht').value.trim();
-  const bedrag = document.getElementById('oz-bedrag').value.trim();
-  const cod    = document.getElementById('oz-cod').value;
+  const num      = document.getElementById('oz-num').value.trim();
+  const naam     = document.getElementById('oz-naam').value.trim();
+  const tel      = document.getElementById('oz-tel').value.trim();
+  const cityId   = document.getElementById('oz-stad').value;
+  const adres    = document.getElementById('oz-adres').value.trim();
+  const bedrag   = document.getElementById('oz-bedrag').value.trim();
+  const stock    = document.getElementById('oz-stock').value.trim() || '1';
   const apiKey    = localStorage.getItem('ozon_apikey') || '';
   const customerId = localStorage.getItem('ozon_customerid') || '';
 
-  if (!naam || !tel || !stad) {
+  if (!naam || !tel || !cityId) {
     document.getElementById('oz-msg').innerHTML = '<div class="msg msg-err">Naam, telefoon en stad zijn verplicht.</div>';
     return;
   }
@@ -936,7 +948,7 @@ async function maakZending() {
       const resp = await fetch('/.netlify/functions/ozon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, customerId, num, naam, tel, stad, adres, prod, gewicht, bedrag, cod })
+        body: JSON.stringify({ apiKey, customerId, receiver: naam, tel, cityId, adres, bedrag, stock, num })
       });
       const data = await resp.json();
       if (data.tracking) {
