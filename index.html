@@ -385,7 +385,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
         </div>
         <div style="margin-top:12px">
-          <button class="refresh-btn" onclick="loadGA4Data()">↻ Vernieuwen</button>
+          <button class="refresh-btn" onclick="loadGA4Data(true)">↻ Vernieuwen</button>
           <button class="btn" style="margin-left:8px" onclick="disconnectGA4()">Ontkoppelen</button>
         </div>
       </div>
@@ -732,7 +732,20 @@ function showGA4Dashboard() {
   document.getElementById('ga4-dashboard').style.display = '';
 }
 
-async function loadGA4Data() {
+async function loadGA4Data(forceRefresh) {
+  const CACHE_KEY = 'ga4_cache';
+  const CACHE_TTL = 60 * 60 * 1000; // 1 uur
+
+  if (!forceRefresh) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && Date.now() - cached.ts < CACHE_TTL) {
+        renderGA4(cached.data);
+        return;
+      }
+    } catch {}
+  }
+
   document.getElementById('ga4-cards').innerHTML = `
     <div class="analytics-card" style="grid-column:1/-1;text-align:center;padding:1.5rem">
       <div style="color:var(--text3)">Data laden...</div>
@@ -742,34 +755,38 @@ async function loadGA4Data() {
     const resp = await fetch('/.netlify/functions/ga4');
     const data = await resp.json();
     if (data.error) throw new Error(data.error);
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
 
-    const { summary, pages, exits } = data;
-    const vals      = summary.rows?.[0]?.metricValues || [];
-    const sessions  = parseInt(vals[0]?.value || 0).toLocaleString();
-    const users     = parseInt(vals[1]?.value || 0).toLocaleString();
-    const pageviews = parseInt(vals[2]?.value || 0).toLocaleString();
-    const bounce    = vals[3]?.value ? (parseFloat(vals[3].value) * 100).toFixed(1) + '%' : '—';
-
-    document.getElementById('ga4-cards').innerHTML = `
-      <div class="analytics-card"><h4>Sessies (30 dagen)</h4><div class="big">${sessions}</div><div class="sub">Bezoeken</div></div>
-      <div class="analytics-card"><h4>Gebruikers (30 dagen)</h4><div class="big">${users}</div><div class="sub">Unieke bezoekers</div></div>
-      <div class="analytics-card"><h4>Paginaweergaven</h4><div class="big">${pageviews}</div><div class="sub">Totaal</div></div>
-      <div class="analytics-card"><h4>Bouncepercentage</h4><div class="big" style="color:var(--red)">${bounce}</div><div class="sub">Directe afhakers</div></div>`;
-
-    document.getElementById('ga4-pages').innerHTML = (pages.rows||[]).map(r =>
-      `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
-    ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
-
-    document.getElementById('ga4-exits').innerHTML = (exits.rows||[]).map(r =>
-      `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
-    ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
-
+    renderGA4(data);
   } catch(e) {
     document.getElementById('ga4-cards').innerHTML = `
       <div class="analytics-card" style="grid-column:1/-1">
         <p style="color:var(--red)">Fout: ${e.message}</p>
       </div>`;
   }
+}
+
+function renderGA4(data) {
+  const { summary, pages, exits } = data;
+  const vals      = summary.rows?.[0]?.metricValues || [];
+  const sessions  = parseInt(vals[0]?.value || 0).toLocaleString();
+  const users     = parseInt(vals[1]?.value || 0).toLocaleString();
+  const pageviews = parseInt(vals[2]?.value || 0).toLocaleString();
+  const bounce    = vals[3]?.value ? (parseFloat(vals[3].value) * 100).toFixed(1) + '%' : '—';
+
+  document.getElementById('ga4-cards').innerHTML = `
+    <div class="analytics-card"><h4>Sessies (30 dagen)</h4><div class="big">${sessions}</div><div class="sub">Bezoeken</div></div>
+    <div class="analytics-card"><h4>Gebruikers (30 dagen)</h4><div class="big">${users}</div><div class="sub">Unieke bezoekers</div></div>
+    <div class="analytics-card"><h4>Paginaweergaven</h4><div class="big">${pageviews}</div><div class="sub">Totaal</div></div>
+    <div class="analytics-card"><h4>Bouncepercentage</h4><div class="big" style="color:var(--red)">${bounce}</div><div class="sub">Directe afhakers</div></div>`;
+
+  document.getElementById('ga4-pages').innerHTML = (pages.rows||[]).map(r =>
+    `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
+  ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
+
+  document.getElementById('ga4-exits').innerHTML = (exits.rows||[]).map(r =>
+    `<tr><td title="${r.dimensionValues[0].value}">${r.dimensionValues[0].value.substring(0,38)}</td><td>${parseInt(r.metricValues[0].value).toLocaleString()}</td></tr>`
+  ).join('') || '<tr><td colspan="2" style="color:var(--text3)">Geen data</td></tr>';
 }
 
 // Check OAuth token in URL hash after redirect (legacy, no longer needed)
