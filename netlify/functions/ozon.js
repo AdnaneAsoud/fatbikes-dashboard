@@ -30,7 +30,7 @@ exports.handler = async function(event) {
   form.append('parcel-city',     String(cityId));
   form.append('parcel-address',  adres || '');
   form.append('parcel-price',    String(parseFloat(bedrag) || 0));
-  form.append('parcel-stock',    String(parseInt(stock) || 1));
+  form.append('parcel-stock',    '0');
 
   try {
     const resp = await fetch(
