@@ -15,11 +15,10 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Ongeldige JSON' }) }; }
 
-  const { apiKey, customerId, receiver, tel, cityId, adres, bedrag, stock } = body;
+  const { receiver, tel, cityId, adres, bedrag } = body;
+  const apiKey     = '51a248-93272f-32fb3f-0db207-af74c6';
+  const customerId = '79103';
 
-  if (!apiKey || !customerId) {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'API sleutel en klant-ID zijn verplicht' }) };
-  }
   if (!receiver || !tel || !cityId) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Naam, telefoon en stad zijn verplicht' }) };
   }
