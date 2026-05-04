@@ -233,6 +233,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <button class="nav-item accent" onclick="showSection('whatsapp')" id="nav-whatsapp">
       <span class="nav-icon">💬</span> + WhatsApp
     </button>
+    <button class="nav-item" onclick="showSection('verzending')" id="nav-verzending">
+      <span class="nav-icon">🚚</span> Verzending
+    </button>
     <button class="nav-item" onclick="showSection('instellingen')" id="nav-instellingen">
       <span class="nav-icon">⚙</span> Instellingen
     </button>
@@ -357,6 +360,98 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div>
 
+    <!-- VERZENDING -->
+    <div class="section" id="sec-verzending">
+      <div class="stats-grid" id="verzend-stats"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+        <!-- Te verzenden -->
+        <div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Te verzenden</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Naam</th><th>Product</th><th>Stad</th><th>Actie</th>
+              </tr></thead>
+              <tbody id="tbl-te-verzenden"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Verzonden -->
+        <div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Verzonden</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th><th>Naam</th><th>Track & Trace</th><th>Status</th>
+              </tr></thead>
+              <tbody id="tbl-verzonden"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zending aanmaken -->
+      <div class="form-card" style="max-width:100%;margin-top:0.5rem">
+        <div class="form-title">Nieuwe zending aanmaken — OzonExpres</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Bestelling #</label>
+            <input type="text" id="oz-num" placeholder="17356"/>
+          </div>
+          <div class="form-group">
+            <label>Ontvanger naam</label>
+            <input type="text" id="oz-naam" placeholder="Mohammed Alami"/>
+          </div>
+          <div class="form-group">
+            <label>Telefoon</label>
+            <input type="text" id="oz-tel" placeholder="0661234567"/>
+          </div>
+          <div class="form-group">
+            <label>Stad</label>
+            <input type="text" id="oz-stad" placeholder="Casablanca"/>
+          </div>
+          <div class="form-group full">
+            <label>Adres</label>
+            <input type="text" id="oz-adres" placeholder="Rue Mohammed V, nr 12"/>
+          </div>
+          <div class="form-group">
+            <label>Product / Omschrijving</label>
+            <input type="text" id="oz-prod" placeholder="Fatbike ouxi V8 pro"/>
+          </div>
+          <div class="form-group">
+            <label>Gewicht (kg)</label>
+            <input type="number" id="oz-gewicht" placeholder="25" value="25"/>
+          </div>
+          <div class="form-group">
+            <label>Bedrag (MAD)</label>
+            <input type="number" id="oz-bedrag" placeholder="0"/>
+          </div>
+          <div class="form-group">
+            <label>Betaling bij levering</label>
+            <select id="oz-cod">
+              <option value="1">Ja — klant betaalt bij ontvangst</option>
+              <option value="0">Nee — al betaald</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-save" onclick="maakZending()">📦 Zending aanmaken</button>
+          <button class="btn" onclick="renderVerzending()">↻ Vernieuwen</button>
+        </div>
+        <div id="oz-msg"></div>
+
+        <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px">OzonExpres API instellingen</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="oz-apikey" placeholder="API sleutel" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none"/>
+            <button class="btn btn-save" onclick="slaOzonKeyOp()">Opslaan</button>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">Sleutel wordt lokaal opgeslagen. Vraag je API sleutel aan bij OzonExpres.</div>
+        </div>
+      </div>
+    </div>
+
     <!-- INSTELLINGEN -->
     <div class="section" id="sec-instellingen">
       <div class="settings-section">
@@ -413,7 +508,7 @@ let sortKey = 'date';
 let sortDir = -1;
 let renderedRows = [];
 
-const SECTION_TITLES = { orders:'Bestellingen', analytics:'Analytics', whatsapp:'+ WhatsApp', instellingen:'Instellingen' };
+const SECTION_TITLES = { orders:'Bestellingen', analytics:'Analytics', whatsapp:'+ WhatsApp', verzending:'Verzending', instellingen:'Instellingen' };
 
 function showSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -424,6 +519,7 @@ function showSection(name) {
   document.getElementById('topbar-title').textContent = SECTION_TITLES[name] || '';
   const rb = document.getElementById('refresh-btn');
   if (rb) rb.style.display = name === 'orders' ? '' : 'none';
+  if (name === 'verzending') renderVerzending();
 }
 
 function getAllOrders() { return [...sheetData, ...waOrders, ...wooOrders]; }
@@ -683,6 +779,116 @@ window.addEventListener('DOMContentLoaded', function() {
   showGA4Dashboard();
   loadGA4Data();
 });
+
+// VERZENDING
+let verzendingen = JSON.parse(localStorage.getItem('verzendingen') || '[]');
+
+function slaOzonKeyOp() {
+  const key = document.getElementById('oz-apikey').value.trim();
+  if (key) { localStorage.setItem('ozon_apikey', key); }
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-ok">API sleutel opgeslagen.</div>';
+  setTimeout(() => document.getElementById('oz-msg').innerHTML = '', 2000);
+}
+
+function renderVerzending() {
+  const ozonKey = localStorage.getItem('ozon_apikey') || '';
+  if (ozonKey) document.getElementById('oz-apikey').value = ozonKey;
+
+  const bevestigd = getAllOrders().filter(o => (o.cmd||'').toLowerCase() === 'oui');
+  const verzondNums = verzendingen.map(v => v.num);
+  const teVerzenden = bevestigd.filter(o => !verzondNums.includes(o.num));
+
+  // Stats
+  document.getElementById('verzend-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Te verzenden</div><div class="stat-value orange">${teVerzenden.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Verzonden</div><div class="stat-value green">${verzendingen.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Bevestigd totaal</div><div class="stat-value">${bevestigd.length}</div></div>`;
+
+  // Te verzenden tabel
+  document.getElementById('tbl-te-verzenden').innerHTML = teVerzenden.length
+    ? teVerzenden.map(o => `<tr>
+        <td class="mono">${o.num||'-'}</td>
+        <td title="${o.nom||''}">${o.nom||'-'}</td>
+        <td title="${o.prod||''}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${o.prod||'-'}</td>
+        <td>${o.ville||'-'}</td>
+        <td><button class="inv-btn" onclick="vulZendingIn('${o.num}')">📦 Verzenden</button></td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="5">Alle bevestigde orders zijn verzonden</td></tr>';
+
+  // Verzonden tabel
+  document.getElementById('tbl-verzonden').innerHTML = verzendingen.length
+    ? verzendingen.map(v => `<tr>
+        <td class="mono">${v.num||'-'}</td>
+        <td>${v.naam||'-'}</td>
+        <td class="mono" style="font-size:11px">${v.tracking ? `<span title="${v.tracking}">${v.tracking.substring(0,16)}...</span>` : '—'}</td>
+        <td><span class="badge ${v.status === 'Geleverd' ? 'b-oui' : 'b-woo'}">${v.status||'Onderweg'}</span></td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="4">Nog niets verzonden</td></tr>';
+}
+
+function vulZendingIn(num) {
+  const order = getAllOrders().find(o => o.num === num);
+  if (!order) return;
+  document.getElementById('oz-num').value   = order.num  || '';
+  document.getElementById('oz-naam').value  = order.nom  || '';
+  document.getElementById('oz-tel').value   = order.tel  || '';
+  document.getElementById('oz-stad').value  = order.ville|| '';
+  document.getElementById('oz-adres').value = order.adres|| '';
+  document.getElementById('oz-prod').value  = order.prod || '';
+  document.getElementById('oz-bedrag').value = order.price|| '';
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Bestelling ingevuld — controleer en klik op Zending aanmaken.</div>';
+  document.getElementById('oz-num').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function maakZending() {
+  const num    = document.getElementById('oz-num').value.trim();
+  const naam   = document.getElementById('oz-naam').value.trim();
+  const tel    = document.getElementById('oz-tel').value.trim();
+  const stad   = document.getElementById('oz-stad').value.trim();
+  const adres  = document.getElementById('oz-adres').value.trim();
+  const prod   = document.getElementById('oz-prod').value.trim();
+  const gewicht= document.getElementById('oz-gewicht').value.trim();
+  const bedrag = document.getElementById('oz-bedrag').value.trim();
+  const cod    = document.getElementById('oz-cod').value;
+  const apiKey = localStorage.getItem('ozon_apikey') || '';
+
+  if (!naam || !tel || !stad) {
+    document.getElementById('oz-msg').innerHTML = '<div class="msg msg-err">Naam, telefoon en stad zijn verplicht.</div>';
+    return;
+  }
+
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Zending aanmaken...</div>';
+
+  if (apiKey) {
+    try {
+      const resp = await fetch('/.netlify/functions/ozon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, num, naam, tel, stad, adres, prod, gewicht, bedrag, cod })
+      });
+      const data = await resp.json();
+      if (data.tracking) {
+        slaVerzendingOp(num, naam, data.tracking);
+        document.getElementById('oz-msg').innerHTML = `<div class="msg msg-ok">Zending aangemaakt! Track & Trace: <strong>${data.tracking}</strong></div>`;
+        return;
+      }
+      if (data.error) throw new Error(data.error);
+    } catch(e) {
+      document.getElementById('oz-msg').innerHTML = `<div class="msg msg-err">API fout: ${e.message}</div>`;
+      return;
+    }
+  }
+
+  // Geen API key — handmatig opslaan
+  slaVerzendingOp(num, naam, '');
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-ok">Opgeslagen als verzonden. Voeg een API sleutel toe om automatisch Track & Trace te krijgen.</div>';
+}
+
+function slaVerzendingOp(num, naam, tracking) {
+  verzendingen.push({ num, naam, tracking, status: tracking ? 'Onderweg' : 'Handmatig', datum: new Date().toLocaleDateString('nl-BE') });
+  localStorage.setItem('verzendingen', JSON.stringify(verzendingen));
+  renderVerzending();
+}
 
 // LOGIN
 (function() {
