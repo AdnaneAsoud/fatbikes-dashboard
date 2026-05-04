@@ -929,34 +929,27 @@ async function maakZending() {
 
   document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Zending aanmaken...</div>';
 
-  if (apiKey) {
-    try {
-      const resp = await fetch('/.netlify/functions/ozon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiver: naam, tel, cityId, adres, bedrag, num })
-      });
-      const data = await resp.json();
-      if (data.tracking) {
-        const stadNaam = document.getElementById('oz-stad').options[document.getElementById('oz-stad').selectedIndex].text;
-        slaVerzendingOp(num, naam, data.tracking);
-        document.getElementById('oz-msg').innerHTML = `
-          <div class="msg msg-ok" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-            <span>✅ Zending aangemaakt! <strong>${data.tracking}</strong></span>
-            <button class="btn btn-save" style="white-space:nowrap" onclick="printLabel('${data.tracking}','${naam.replace(/'/g,"\\'")}','${tel}','${stadNaam}','${adres.replace(/'/g,"\\'")}','${bedrag}')">🖨 Label afdrukken</button>
-          </div>`;
-        return;
-      }
-      if (data.error) throw new Error(data.error);
-    } catch(e) {
-      document.getElementById('oz-msg').innerHTML = `<div class="msg msg-err">API fout: ${e.message}</div>`;
+  try {
+    const resp = await fetch('/.netlify/functions/ozon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiver: naam, tel, cityId, adres, bedrag, num })
+    });
+    const data = await resp.json();
+    if (data.tracking) {
+      const stadNaam = document.getElementById('oz-stad').options[document.getElementById('oz-stad').selectedIndex].text;
+      slaVerzendingOp(num, naam, data.tracking);
+      document.getElementById('oz-msg').innerHTML = `
+        <div class="msg msg-ok" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span>✅ Zending aangemaakt! <strong>${data.tracking}</strong></span>
+          <button class="btn btn-save" style="white-space:nowrap" onclick="printLabel('${data.tracking}','${naam.replace(/'/g,"\\'")}','${tel}','${stadNaam}','${adres.replace(/'/g,"\\'")}','${bedrag}')">🖨 Label afdrukken</button>
+        </div>`;
       return;
     }
+    throw new Error(data.error || 'Onbekende fout');
+  } catch(e) {
+    document.getElementById('oz-msg').innerHTML = `<div class="msg msg-err">Fout: ${e.message}</div>`;
   }
-
-  // Geen API key — handmatig opslaan
-  slaVerzendingOp(num, naam, '');
-  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-ok">Opgeslagen als verzonden. Voeg een API sleutel toe om automatisch Track & Trace te krijgen.</div>';
 }
 
 async function printLabel(tracking, naam, tel, stad, adres, bedrag) {
