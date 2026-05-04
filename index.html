@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Fatbikes.ma — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --bg: #0f1117; --bg2: #181b24; --bg3: #1e2230;
@@ -936,8 +938,13 @@ async function maakZending() {
       });
       const data = await resp.json();
       if (data.tracking) {
+        const stadNaam = document.getElementById('oz-stad').options[document.getElementById('oz-stad').selectedIndex].text;
         slaVerzendingOp(num, naam, data.tracking);
-        document.getElementById('oz-msg').innerHTML = `<div class="msg msg-ok">Zending aangemaakt! Track & Trace: <strong>${data.tracking}</strong></div>`;
+        document.getElementById('oz-msg').innerHTML = `
+          <div class="msg msg-ok" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <span>✅ Zending aangemaakt! <strong>${data.tracking}</strong></span>
+            <button class="btn btn-save" style="white-space:nowrap" onclick="printLabel('${data.tracking}','${naam.replace(/'/g,"\\'")}','${tel}','${stadNaam}','${adres.replace(/'/g,"\\'")}','${bedrag}')">🖨 Label afdrukken</button>
+          </div>`;
         return;
       }
       if (data.error) throw new Error(data.error);
@@ -950,6 +957,82 @@ async function maakZending() {
   // Geen API key — handmatig opslaan
   slaVerzendingOp(num, naam, '');
   document.getElementById('oz-msg').innerHTML = '<div class="msg msg-ok">Opgeslagen als verzonden. Voeg een API sleutel toe om automatisch Track & Trace te krijgen.</div>';
+}
+
+async function printLabel(tracking, naam, tel, stad, adres, bedrag) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a6' });
+  const W = 105, H = 148;
+
+  // Achtergrond
+  doc.setFillColor(15, 17, 23);
+  doc.rect(0, 0, W, H, 'F');
+
+  // Header
+  doc.setFillColor(255, 107, 53);
+  doc.rect(0, 0, W, 18, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+  doc.text('Fatbikes.ma', 5, 7);
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  doc.text('Bon de livraison — OzonExpress', 5, 13);
+
+  // QR code genereren
+  const qrDiv = document.createElement('div');
+  qrDiv.style.position = 'absolute'; qrDiv.style.left = '-9999px';
+  document.body.appendChild(qrDiv);
+  new QRCode(qrDiv, { text: tracking, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff' });
+  await new Promise(r => setTimeout(r, 300));
+  const qrCanvas = qrDiv.querySelector('canvas');
+  if (qrCanvas) {
+    const qrImg = qrCanvas.toDataURL('image/png');
+    doc.addImage(qrImg, 'PNG', W/2 - 22, 22, 44, 44);
+  }
+  document.body.removeChild(qrDiv);
+
+  // Tracking nummer
+  doc.setTextColor(255, 107, 53);
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+  doc.text(tracking, W/2, 73, { align: 'center' });
+
+  // Lijn
+  doc.setDrawColor(40, 45, 60);
+  doc.line(5, 78, W-5, 78);
+
+  // Ontvanger
+  doc.setTextColor(140, 143, 168);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('ONTVANGER', 5, 85);
+  doc.setTextColor(240, 240, 240);
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+  doc.text(naam, 5, 92);
+  doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  doc.text(tel, 5, 98);
+  doc.text(stad, 5, 104);
+  if (adres) { doc.setFontSize(7); doc.text(adres, 5, 110, { maxWidth: W-10 }); }
+
+  // Lijn
+  doc.setDrawColor(40, 45, 60);
+  doc.line(5, 118, W-5, 118);
+
+  // Bedrag COD
+  if (bedrag && parseFloat(bedrag) > 0) {
+    doc.setTextColor(140, 143, 168);
+    doc.setFontSize(7);
+    doc.text('MONTANT À ENCAISSER (COD)', 5, 125);
+    doc.setTextColor(62, 207, 142);
+    doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+    doc.text(`${parseFloat(bedrag).toFixed(2)} MAD`, 5, 134);
+  }
+
+  // Footer
+  doc.setFillColor(25, 28, 38);
+  doc.rect(0, H-12, W, 12, 'F');
+  doc.setTextColor(85, 91, 114);
+  doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text('OzonExpress — client.ozonlivraison.ma', W/2, H-5, { align: 'center' });
+
+  doc.save(`label-${tracking}.pdf`);
 }
 
 function slaVerzendingOp(num, naam, tracking) {
