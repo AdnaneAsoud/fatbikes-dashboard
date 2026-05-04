@@ -504,11 +504,14 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
         <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
           <div style="font-size:12px;color:var(--text3);margin-bottom:8px">OzonExpres API instellingen</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="text" id="oz-apikey" placeholder="API sleutel" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none"/>
-            <button class="btn btn-save" onclick="slaOzonKeyOp()">Opslaan</button>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input type="text" id="oz-customerid" placeholder="Klant-ID (bijv. 1234)" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none"/>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="oz-apikey" placeholder="API sleutel (Bearer token)" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none"/>
+              <button class="btn btn-save" onclick="slaOzonKeyOp()">Opslaan</button>
+            </div>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px">Sleutel wordt lokaal opgeslagen. Vraag je API sleutel aan bij OzonExpres.</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">Gegevens worden lokaal opgeslagen. Vraag je klant-ID en API sleutel aan bij OzonExpres.</div>
         </div>
       </div>
     </div>
@@ -849,14 +852,18 @@ let verzendingen = JSON.parse(localStorage.getItem('verzendingen') || '[]');
 
 function slaOzonKeyOp() {
   const key = document.getElementById('oz-apikey').value.trim();
-  if (key) { localStorage.setItem('ozon_apikey', key); }
-  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-ok">API sleutel opgeslagen.</div>';
+  const cid = document.getElementById('oz-customerid').value.trim();
+  if (key) localStorage.setItem('ozon_apikey', key);
+  if (cid) localStorage.setItem('ozon_customerid', cid);
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-ok">Instellingen opgeslagen.</div>';
   setTimeout(() => document.getElementById('oz-msg').innerHTML = '', 2000);
 }
 
 function renderVerzending() {
   const ozonKey = localStorage.getItem('ozon_apikey') || '';
+  const ozonCid = localStorage.getItem('ozon_customerid') || '';
   if (ozonKey) document.getElementById('oz-apikey').value = ozonKey;
+  if (ozonCid) document.getElementById('oz-customerid').value = ozonCid;
 
   const bevestigd = getAllOrders().filter(o => (o.cmd||'').toLowerCase() === 'oui');
   const verzondNums = verzendingen.map(v => v.num);
@@ -914,7 +921,8 @@ async function maakZending() {
   const gewicht= document.getElementById('oz-gewicht').value.trim();
   const bedrag = document.getElementById('oz-bedrag').value.trim();
   const cod    = document.getElementById('oz-cod').value;
-  const apiKey = localStorage.getItem('ozon_apikey') || '';
+  const apiKey    = localStorage.getItem('ozon_apikey') || '';
+  const customerId = localStorage.getItem('ozon_customerid') || '';
 
   if (!naam || !tel || !stad) {
     document.getElementById('oz-msg').innerHTML = '<div class="msg msg-err">Naam, telefoon en stad zijn verplicht.</div>';
@@ -928,7 +936,7 @@ async function maakZending() {
       const resp = await fetch('/.netlify/functions/ozon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, num, naam, tel, stad, adres, prod, gewicht, bedrag, cod })
+        body: JSON.stringify({ apiKey, customerId, num, naam, tel, stad, adres, prod, gewicht, bedrag, cod })
       });
       const data = await resp.json();
       if (data.tracking) {
