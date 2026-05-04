@@ -82,6 +82,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .b-non { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
 .b-woo { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
 .b-wa { background: rgba(37,211,102,0.1); color: #25d366; border: 1px solid rgba(37,211,102,0.2); }
+.b-bellen { background: rgba(255,107,53,0.15); color: var(--accent); border: 1px solid rgba(255,107,53,0.3); font-weight: 600; }
+.btn-ok { background: rgba(62,207,142,0.15); border: 1px solid rgba(62,207,142,0.3); border-radius: 6px; padding: 4px 10px; color: var(--green); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+.btn-ok:hover { background: rgba(62,207,142,0.25); }
+.btn-nee { background: var(--red-bg); border: 1px solid rgba(248,113,113,0.2); border-radius: 6px; padding: 4px 10px; color: var(--red); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+.btn-nee:hover { background: rgba(248,113,113,0.2); }
+tr.rij-bellen td { background: rgba(255,107,53,0.04); }
 .empty-row td { text-align: center; padding: 3rem; color: var(--text3); }
 .inv-btn { background: var(--accent); border: none; border-radius: 6px; padding: 5px 12px; color: white; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; transition: background 0.15s; }
 .inv-btn:hover { background: var(--accent2); }
@@ -328,8 +334,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </div>
         <select id="f-status" onchange="renderOrders()">
           <option value="">Alle statussen</option>
-          <option value="oui">Bevestigd</option>
-          <option value="non">Geweigerd</option>
+          <option value="bellen">📞 Te bellen</option>
+          <option value="oui">✅ Goedgekeurd</option>
+          <option value="non">❌ Geweigerd</option>
         </select>
         <select id="f-bron" onchange="renderOrders()">
           <option value="">Alle bronnen</option>
@@ -349,7 +356,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
               <th onclick="sortBy('cmd')">Status</th>
               <th onclick="sortBy('ville')">Stad</th>
               <th>Bron</th>
-              <th>Factuur</th>
+              <th>Acties</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -575,6 +582,7 @@ const sheetData = [
 ];
 
 let waOrders = JSON.parse(localStorage.getItem('wa_orders') || '[]');
+let lokaleStatussen = JSON.parse(localStorage.getItem('lokale_statussen') || '{}');
 let wooOrders = [];
 let sortKey = 'date';
 let sortDir = -1;
@@ -607,7 +615,7 @@ function renderOrders() {
   let rows = getAllOrders().filter(o => {
     const ms = !search || (o.nom||'').toLowerCase().includes(search) || (o.ville||'').toLowerCase().includes(search)
       || (o.prod||'').toLowerCase().includes(search) || (o.num||'').toLowerCase().includes(search) || (o.tel||'').toLowerCase().includes(search);
-    const mst = !fStatus || (o.cmd||'').toLowerCase() === fStatus;
+    const mst = !fStatus || effectiefCmd(o) === fStatus;
     const mb  = !fBron   || (o.bron||'').toLowerCase() === fBron;
     return ms && mst && mb;
   });
@@ -629,19 +637,30 @@ function renderOrders() {
   }
 
   tbody.innerHTML = rows.map((o, i) => {
-    const cl = (o.cmd||'').toLowerCase();
-    const badge = cl === 'oui' ? 'b-oui' : cl === 'non' ? 'b-non' : 'b-woo';
+    const eff = effectiefCmd(o);
     const bb = o.bron === 'whatsapp' ? 'b-wa' : 'b-woo';
-    return `<tr>
+    let badge, acties;
+    if (eff === 'oui') {
+      badge = '<span class="badge b-oui">✅ Goedgekeurd</span>';
+      acties = `<button class="inv-btn" onclick="naarVerzending('${o.num}')">📦 Verzenden</button> <button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})">📄</button>`;
+    } else if (eff === 'non') {
+      badge = '<span class="badge b-non">❌ Geweigerd</span>';
+      acties = `<button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})">📄</button>`;
+    } else {
+      badge = '<span class="badge b-bellen">📞 Bellen</span>';
+      acties = `<button class="btn-ok" onclick="keurGoed('${o.num}')">✅ OK</button> <button class="btn-nee" onclick="weigerOrder('${o.num}')">❌ Nee</button>`;
+    }
+    const trClass = eff === 'bellen' ? ' class="rij-bellen"' : '';
+    return `<tr${trClass}>
       <td class="mono">${o.date||'-'}</td>
       <td class="mono">${o.num||'-'}</td>
       <td title="${o.nom||''}">${o.nom||'-'}</td>
       <td class="mono">${o.tel||'-'}</td>
       <td title="${o.prod||''}">${o.prod||'-'}</td>
-      <td><span class="badge ${badge}">${o.cmd||'-'}</span></td>
+      <td>${badge}</td>
       <td>${o.ville||'-'}</td>
       <td><span class="badge ${bb}">${o.bron||'-'}</span></td>
-      <td><button class="inv-btn" onclick="openInvoice(${i})">📄 Factuur</button></td>
+      <td style="white-space:nowrap">${acties}</td>
     </tr>`;
   }).join('');
 
@@ -650,17 +669,15 @@ function renderOrders() {
 }
 
 function renderStats() {
-  const all = getAllOrders();
-  const oui = all.filter(o => (o.cmd||'').toLowerCase() === 'oui').length;
-  const non = all.filter(o => (o.cmd||'').toLowerCase() === 'non').length;
-  const woo = all.filter(o => o.bron === 'woo').length;
-  const wa  = all.filter(o => o.bron === 'whatsapp').length;
+  const all     = getAllOrders();
+  const bellen  = all.filter(o => effectiefCmd(o) === 'bellen').length;
+  const oui     = all.filter(o => effectiefCmd(o) === 'oui').length;
+  const non     = all.filter(o => effectiefCmd(o) === 'non').length;
   document.getElementById('stats').innerHTML = `
     <div class="stat-card"><div class="stat-label">Totaal</div><div class="stat-value">${all.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Bevestigd</div><div class="stat-value green">${oui}</div></div>
-    <div class="stat-card"><div class="stat-label">Geweigerd</div><div class="stat-value red">${non}</div></div>
-    <div class="stat-card"><div class="stat-label">WooCommerce</div><div class="stat-value orange">${woo}</div></div>
-    <div class="stat-card"><div class="stat-label">WhatsApp</div><div class="stat-value">${wa}</div></div>`;
+    <div class="stat-card" style="border-color:rgba(255,107,53,0.3)"><div class="stat-label">📞 Te bellen</div><div class="stat-value orange">${bellen}</div></div>
+    <div class="stat-card"><div class="stat-label">✅ Goedgekeurd</div><div class="stat-value green">${oui}</div></div>
+    <div class="stat-card"><div class="stat-label">❌ Geweigerd</div><div class="stat-value red">${non}</div></div>`;
 }
 
 function sortBy(key) {
@@ -845,7 +862,7 @@ async function loadWooOrders(fromRefresh) {
       nom: `${o.billing?.first_name||''} ${o.billing?.last_name||''}`.trim(),
       email: o.billing?.email||'', tel: o.billing?.phone||'',
       prod: o.line_items?.map(i => i.name).join(', ')||'',
-      price: o.total, cmd: o.status === 'completed' ? 'Oui' : o.status,
+      price: o.total, cmd: o.status === 'completed' ? 'oui' : (o.status === 'cancelled' || o.status === 'refunded') ? 'non' : 'bellen',
       raison:'', ville: o.billing?.city||'', adres: o.billing?.address_1||'', bron:'woo'
     }));
     updateApiStatus(true);
@@ -887,7 +904,7 @@ function laadSteden() {
 async function renderVerzending() {
   laadSteden();
 
-  const bevestigd = getAllOrders().filter(o => (o.cmd||'').toLowerCase() === 'oui');
+  const bevestigd = getAllOrders().filter(o => effectiefCmd(o) === 'oui');
   const verzondNums = verzendingen.map(v => v.num);
   const teVerzenden = bevestigd.filter(o => !verzondNums.includes(o.num));
 
@@ -917,6 +934,28 @@ async function renderVerzending() {
         <td><span class="badge ${v.status === 'Geleverd' ? 'b-oui' : 'b-woo'}">${v.status||'Onderweg'}</span></td>
       </tr>`).join('')
     : '<tr class="empty-row"><td colspan="4">Nog niets verzonden</td></tr>';
+}
+
+function effectiefCmd(o) {
+  if (lokaleStatussen[o.num]) return lokaleStatussen[o.num];
+  return (o.cmd || '').toLowerCase();
+}
+
+function keurGoed(num) {
+  lokaleStatussen[num] = 'oui';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  renderOrders();
+}
+
+function weigerOrder(num) {
+  lokaleStatussen[num] = 'non';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  renderOrders();
+}
+
+function naarVerzending(num) {
+  showSection('verzending');
+  setTimeout(() => vulZendingIn(num), 150);
 }
 
 function vulZendingIn(num) {
