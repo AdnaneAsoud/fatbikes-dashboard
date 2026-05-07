@@ -121,6 +121,20 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
 .api-fields input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; width: 100%; }
 .api-fields input:focus { border-color: var(--accent); }
 
+/* VOORRAAD */
+.stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.stock-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: border-color 0.15s; }
+.stock-card:hover { border-color: var(--border2); }
+.stock-name { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+.stock-qty { font-size: 52px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -2px; margin-bottom: 4px; line-height: 1; }
+.stock-qty.ok  { color: var(--green); }
+.stock-qty.low { color: var(--accent); }
+.stock-qty.out { color: var(--red); }
+.stock-sub { font-size: 11px; color: var(--text3); margin-bottom: 0.75rem; }
+.stock-edit { display: flex; gap: 6px; }
+.stock-edit input { width: 80px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; }
+.stock-edit input:focus { border-color: var(--accent); }
+
 /* ANALYTICS */
 .ga4-placeholder { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; max-width: 480px; }
 .ga4-placeholder h3 { font-size: 16px; margin-bottom: 0.5rem; }
@@ -299,6 +313,9 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
     <button class="nav-item" onclick="showSection('analytics')" id="nav-analytics">
       <span class="nav-icon">📊</span> Analytics
     </button>
+    <button class="nav-item" onclick="showSection('voorraad')" id="nav-voorraad">
+      <span class="nav-icon">📦</span> Voorraad
+    </button>
     <button class="nav-item accent" onclick="showSection('whatsapp')" id="nav-whatsapp">
       <span class="nav-icon">💬</span> + WhatsApp
     </button>
@@ -363,6 +380,16 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
         </table>
       </div>
       <div class="count-label" id="count-label"></div>
+    </div>
+
+    <!-- VOORRAAD -->
+    <div class="section" id="sec-voorraad">
+      <div class="stock-grid" id="stock-cards">
+        <div style="color:var(--text3);font-size:13px">Laden...</div>
+      </div>
+      <div style="margin-top:1.25rem">
+        <button class="refresh-btn" onclick="loadVoorraad()">↻ Vernieuwen</button>
+      </div>
     </div>
 
     <!-- ANALYTICS -->
@@ -588,7 +615,7 @@ let sortKey = 'date';
 let sortDir = -1;
 let renderedRows = [];
 
-const SECTION_TITLES = { orders:'Bestellingen', analytics:'Analytics', whatsapp:'+ WhatsApp', verzending:'Verzending', instellingen:'Instellingen' };
+const SECTION_TITLES = { orders:'Bestellingen', analytics:'Analytics', voorraad:'Voorraad', whatsapp:'+ WhatsApp', verzending:'Verzending', instellingen:'Instellingen' };
 
 function showSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -603,6 +630,7 @@ function showSection(name) {
   const rb = document.getElementById('refresh-btn');
   if (rb) rb.style.display = name === 'orders' ? '' : 'none';
   if (name === 'verzending') renderVerzending().catch(()=>{});
+  if (name === 'voorraad') loadVoorraad();
 }
 
 function getAllOrders() { return [...sheetData, ...waOrders, ...wooOrders]; }
@@ -684,6 +712,58 @@ function sortBy(key) {
   sortDir = sortKey === key ? sortDir * -1 : -1;
   sortKey = key;
   renderOrders();
+}
+
+// VOORRAAD
+const STOCK_PRODUCTS = [
+  { id: 17107, name: 'FatBike Ouxi V8 Pro' },
+  { id: 17066, name: 'Fatbike Ouxi V8'     },
+  { id: 17184, name: 'Trottinette X8'      },
+];
+
+async function loadVoorraad() {
+  const wrap = document.getElementById('stock-cards');
+  wrap.innerHTML = '<div style="color:var(--text3);font-size:13px">Laden...</div>';
+  try {
+    const results = await Promise.all(STOCK_PRODUCTS.map(p =>
+      fetch(`${WOO_URL}/wp-json/wc/v3/products/${p.id}?consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`)
+        .then(r => r.json()).then(d => ({ ...p, qty: d.stock_quantity ?? 0 }))
+    ));
+    wrap.innerHTML = results.map(p => {
+      const cls = p.qty > 5 ? 'ok' : p.qty > 0 ? 'low' : 'out';
+      return `<div class="stock-card">
+        <div class="stock-name">${p.name}</div>
+        <div class="stock-qty ${cls}">${p.qty}</div>
+        <div class="stock-sub">stuks beschikbaar</div>
+        <div class="stock-edit">
+          <input type="number" min="0" id="qty-${p.id}" value="${p.qty}"/>
+          <button class="btn btn-save" onclick="saveStock(${p.id})">Bijwerken</button>
+        </div>
+        <div id="stock-msg-${p.id}" style="margin-top:6px;font-size:12px"></div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    wrap.innerHTML = `<div style="color:var(--red);font-size:13px">Fout: ${e.message}</div>`;
+  }
+}
+
+async function saveStock(id) {
+  const input = document.getElementById('qty-' + id);
+  const msgEl = document.getElementById('stock-msg-' + id);
+  const qty   = parseInt(input.value);
+  if (isNaN(qty) || qty < 0) { msgEl.innerHTML = '<span style="color:var(--red)">Ongeldig aantal</span>'; return; }
+  msgEl.innerHTML = '<span style="color:var(--text3)">Opslaan...</span>';
+  try {
+    const r = await fetch(`${WOO_URL}/wp-json/wc/v3/products/${id}?consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stock_quantity: qty, manage_stock: true, stock_status: qty > 0 ? 'instock' : 'outofstock' })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    msgEl.innerHTML = '<span style="color:var(--green)">Opgeslagen!</span>';
+    setTimeout(() => loadVoorraad(), 800);
+  } catch(e) {
+    msgEl.innerHTML = `<span style="color:var(--red)">Fout: ${e.message}</span>`;
+  }
 }
 
 // FACTUUR
