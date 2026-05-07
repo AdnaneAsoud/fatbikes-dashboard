@@ -122,18 +122,24 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
 .api-fields input:focus { border-color: var(--accent); }
 
 /* VOORRAAD */
-.stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .stock-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: border-color 0.15s; }
 .stock-card:hover { border-color: var(--border2); }
-.stock-name { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
-.stock-qty { font-size: 52px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -2px; margin-bottom: 4px; line-height: 1; }
-.stock-qty.ok  { color: var(--green); }
-.stock-qty.low { color: var(--accent); }
-.stock-qty.out { color: var(--red); }
-.stock-sub { font-size: 11px; color: var(--text3); margin-bottom: 0.75rem; }
-.stock-edit { display: flex; gap: 6px; }
-.stock-edit input { width: 80px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; }
+.stock-name { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+.stock-row { display: flex; gap: 1rem; margin-bottom: 0.75rem; }
+.stock-col { flex: 1; }
+.stock-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.stock-num { font-size: 40px; font-weight: 600; font-family: 'DM Mono', monospace; letter-spacing: -1px; line-height: 1; }
+.stock-num.ok  { color: var(--green); }
+.stock-num.low { color: var(--accent); }
+.stock-num.out { color: var(--red); }
+.stock-num.transit { color: var(--blue); }
+.stock-divider { border: none; border-top: 1px solid var(--border); margin: 0.75rem 0; }
+.stock-edit { display: flex; gap: 6px; margin-bottom: 6px; }
+.stock-edit input { width: 72px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; }
 .stock-edit input:focus { border-color: var(--accent); }
+.stock-ontvangen { width: 100%; margin-top: 4px; background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.3); border-radius: var(--radius-sm); padding: 7px 12px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.stock-ontvangen:hover { background: rgba(96,165,250,0.2); }
 
 /* ANALYTICS */
 .ga4-placeholder { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 3rem 2rem; text-align: center; max-width: 480px; }
@@ -721,6 +727,9 @@ const STOCK_PRODUCTS = [
   { id: 17184, name: 'Trottinette X8'      },
 ];
 
+function getOnderweg(id) { return parseInt(localStorage.getItem('onderweg_' + id) || '0'); }
+function setOnderweg(id, qty) { localStorage.setItem('onderweg_' + id, qty); }
+
 async function loadVoorraad() {
   const wrap = document.getElementById('stock-cards');
   wrap.innerHTML = '<div style="color:var(--text3);font-size:13px">Laden...</div>';
@@ -730,20 +739,66 @@ async function loadVoorraad() {
         .then(r => r.json()).then(d => ({ ...p, qty: d.stock_quantity ?? 0 }))
     ));
     wrap.innerHTML = results.map(p => {
-      const cls = p.qty > 5 ? 'ok' : p.qty > 0 ? 'low' : 'out';
+      const beschikbaar = p.qty;
+      const onderweg    = getOnderweg(p.id);
+      const cls = beschikbaar > 5 ? 'ok' : beschikbaar > 0 ? 'low' : 'out';
       return `<div class="stock-card">
         <div class="stock-name">${p.name}</div>
-        <div class="stock-qty ${cls}">${p.qty}</div>
-        <div class="stock-sub">stuks beschikbaar</div>
-        <div class="stock-edit">
-          <input type="number" min="0" id="qty-${p.id}" value="${p.qty}"/>
-          <button class="btn btn-save" onclick="saveStock(${p.id})">Bijwerken</button>
+        <div class="stock-row">
+          <div class="stock-col">
+            <div class="stock-lbl">Beschikbaar</div>
+            <div class="stock-num ${cls}">${beschikbaar}</div>
+          </div>
+          <div class="stock-col">
+            <div class="stock-lbl">Onderweg</div>
+            <div class="stock-num transit">${onderweg}</div>
+          </div>
         </div>
+        <hr class="stock-divider"/>
+        <div class="stock-edit">
+          <input type="number" min="0" id="qty-${p.id}" value="${beschikbaar}" placeholder="Beschikbaar"/>
+          <button class="btn btn-save" onclick="saveStock(${p.id})">Zet stock</button>
+        </div>
+        <div class="stock-edit">
+          <input type="number" min="0" id="onderweg-${p.id}" value="${onderweg}" placeholder="Onderweg"/>
+          <button class="btn" onclick="saveOnderweg(${p.id})">Onderweg</button>
+        </div>
+        ${onderweg > 0 ? `<button class="stock-ontvangen" onclick="ontvangen(${p.id})">✓ Ontvangen — ${onderweg} stuks toevoegen aan beschikbaar</button>` : ''}
         <div id="stock-msg-${p.id}" style="margin-top:6px;font-size:12px"></div>
       </div>`;
     }).join('');
   } catch(e) {
     wrap.innerHTML = `<div style="color:var(--red);font-size:13px">Fout: ${e.message}</div>`;
+  }
+}
+
+function saveOnderweg(id) {
+  const qty = parseInt(document.getElementById('onderweg-' + id).value);
+  if (isNaN(qty) || qty < 0) return;
+  setOnderweg(id, qty);
+  document.getElementById('stock-msg-' + id).innerHTML = '<span style="color:var(--blue)">Onderweg opgeslagen!</span>';
+  setTimeout(() => loadVoorraad(), 500);
+}
+
+async function ontvangen(id) {
+  const onderweg = getOnderweg(id);
+  if (!onderweg) return;
+  const msgEl = document.getElementById('stock-msg-' + id);
+  msgEl.innerHTML = '<span style="color:var(--text3)">Verwerken...</span>';
+  try {
+    const r1 = await fetch(`${WOO_URL}/wp-json/wc/v3/products/${id}?consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`);
+    const d   = await r1.json();
+    const nieuw = (d.stock_quantity ?? 0) + onderweg;
+    const r2 = await fetch(`${WOO_URL}/wp-json/wc/v3/products/${id}?consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stock_quantity: nieuw, manage_stock: true, stock_status: 'instock' })
+    });
+    if (!r2.ok) throw new Error('HTTP ' + r2.status);
+    setOnderweg(id, 0);
+    msgEl.innerHTML = `<span style="color:var(--green)">${onderweg} stuks ontvangen! Nieuw: ${nieuw}</span>`;
+    setTimeout(() => loadVoorraad(), 800);
+  } catch(e) {
+    msgEl.innerHTML = `<span style="color:var(--red)">Fout: ${e.message}</span>`;
   }
 }
 
