@@ -78,11 +78,13 @@ tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(255,255,255,0.02); }
 .mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
 .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-.b-oui { background: var(--green-bg); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
-.b-non { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+.b-oui, .b-confirme { background: var(--green-bg); color: var(--green); border: 1px solid rgba(62,207,142,0.2); }
+.b-non, .b-refuse { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
 .b-woo { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
 .b-wa { background: rgba(37,211,102,0.1); color: #25d366; border: 1px solid rgba(37,211,102,0.2); }
-.b-bellen { background: rgba(255,107,53,0.15); color: var(--accent); border: 1px solid rgba(255,107,53,0.3); font-weight: 600; }
+.b-bellen, .b-a_appeler { background: rgba(255,107,53,0.15); color: var(--accent); border: 1px solid rgba(255,107,53,0.3); font-weight: 600; }
+.b-en_attente { background: rgba(250,204,21,0.15); color: #facc15; border: 1px solid rgba(250,204,21,0.3); font-weight: 600; }
+.b-expedie { background: rgba(96,165,250,0.15); color: var(--blue); border: 1px solid rgba(96,165,250,0.25); font-weight: 600; }
 .btn-ok { background: rgba(62,207,142,0.15); border: 1px solid rgba(62,207,142,0.3); border-radius: 6px; padding: 4px 10px; color: var(--green); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; }
 .btn-ok:hover { background: rgba(62,207,142,0.25); }
 .btn-nee { background: var(--red-bg); border: 1px solid rgba(248,113,113,0.2); border-radius: 6px; padding: 4px 10px; color: var(--red); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
@@ -192,43 +194,304 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
 
 @media print { .sidebar, .topbar, .modal-overlay, .invoice-actions { display: none !important; } .main-wrap { margin-left: 0; } .modal { border: none; box-shadow: none; } }
 
-/* BOTTOM NAV MOBILE */
-.bottom-nav { display: none; }
-@media (max-width: 700px) {
-  .sidebar { display: none; }
-  .main-wrap { margin-left: 0; padding-bottom: 70px; }
+/* v7: NIEUWE WORKFLOW — Confirmer modal + Refuse reasons + Attempts badge */
+.btn-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 2px 8px rgba(16,185,129,0.25);
+  white-space: nowrap;
+}
+.btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(16,185,129,0.35); }
+.btn-pas-repondu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(250,204,21,0.15);
+  color: #facc15;
+  border: 1px solid rgba(250,204,21,0.3);
+  padding: 8px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+}
+.btn-pas-repondu:hover { background: rgba(250,204,21,0.25); }
+.btn-bon-livraison {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, var(--accent), #ff8c5a);
+  color: #fff;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+  transition: transform 0.12s;
+}
+.btn-bon-livraison:hover { transform: translateY(-1px); }
+
+.refuse-reason-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  transition: all 0.12s;
+}
+.refuse-reason-btn:hover { border-color: var(--red); background: rgba(248,113,113,0.08); }
+
+.attempts-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+.attempts-badge.att-1 { background: rgba(148,163,184,0.2); color: #94a3b8; }
+.attempts-badge.att-2 { background: rgba(250,204,21,0.2); color: #facc15; }
+.attempts-badge.att-3 { background: rgba(248,113,113,0.2); color: #f87171; }
+
+.refuse-reason-display {
+  display: inline-block;
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid rgba(248,113,113,0.2);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+/* ATELIER D'ACTIONS + TABS + WHATSAPP BTN — v5 (2026-05-10) */
+.view-tabs { display: flex; gap: 4px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; margin-bottom: 1rem; max-width: 100%; overflow-x: auto; }
+.view-tab { flex: 1; min-width: 120px; padding: 10px 14px; background: transparent; border: none; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.15s; white-space: nowrap; }
+.view-tab:hover { color: var(--text); background: var(--bg3); }
+.view-tab.active { background: var(--accent); color: #fff; }
+.view-tab .badge-count { display: inline-block; background: rgba(255,255,255,0.25); border-radius: 10px; padding: 2px 7px; font-size: 11px; margin-left: 6px; min-width: 18px; }
+.view-tab:not(.active) .badge-count { background: var(--bg3); color: var(--text); }
+
+.add-order-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--accent), #ff8c5a); color: #fff; border: none; padding: 12px 22px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.35); }
+.add-order-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255, 107, 53, 0.45); }
+.add-order-btn:active { transform: translateY(0); }
+
+.btn-wa { display: inline-flex; align-items: center; gap: 5px; background: #25D366; color: #fff; border: none; padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; font-family: 'DM Sans', sans-serif; }
+.btn-wa:hover { background: #1ea954; }
+.btn-status-next { display: inline-flex; align-items: center; gap: 5px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); padding: 6px 11px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+.btn-status-next:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-refused { background: transparent; color: var(--text3); border: 1px solid var(--border); padding: 6px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+.btn-refused:hover { color: #f87171; border-color: #f87171; }
+
+.source-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; }
+.source-icon.web { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.source-icon.wa { background: rgba(37,211,102,0.15); color: #25D366; }
+
+.client-cell { display: flex; flex-direction: column; gap: 2px; }
+.client-cell .client-name { font-weight: 600; font-size: 13px; color: var(--text); }
+.client-cell .client-tel { font-size: 12px; color: var(--text3); text-decoration: none; }
+.client-cell .client-tel:hover { color: var(--accent); text-decoration: underline; }
+
+.atelier-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: 12px; flex-wrap: wrap; }
+.atelier-header h3 { font-size: 14px; color: var(--text2); font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state .empty-msg { font-size: 14px; }
+
+@media (max-width: 768px) {
+  .view-tab { font-size: 12px; padding: 9px 10px; min-width: 100px; }
+  .view-tab .badge-count { font-size: 10px; padding: 1px 5px; }
+  .add-order-btn { padding: 10px 16px; font-size: 13px; width: 100%; justify-content: center; }
+  .atelier-header { flex-direction: column; align-items: stretch; }
+  .btn-wa, .btn-status-next, .btn-refused { padding: 5px 8px; font-size: 11px; }
+}
+
+/* MOBILE: PUSH-SIDEBAR + HAMBURGER — v5 (2026-05-16) */
+.bottom-nav { display: none !important; }
+.hamburger-btn { display: none; }
+.sidebar-overlay { display: none; }
+
+@media (max-width: 768px) {
+  html, body { overflow-x: hidden; }
+  body { min-width: 0; }
+
+  .main-wrap {
+    min-width: 0 !important;
+    width: 100%;
+    max-width: 100vw;
+    flex: 1 1 0;
+    overflow-x: hidden;
+    margin-left: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .main, .section { min-width: 0; max-width: 100%; }
+  .view-tabs, .atelier-header, .form-card, .table-wrap { min-width: 0; max-width: 100%; }
+
+  /* CARD LAYOUT — tabel wordt verticale lijst van cards */
+  .table-wrap {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+  .table-wrap table { display: block; width: 100%; min-width: 0; border-collapse: separate; }
+  .table-wrap thead { display: none; }
+  .table-wrap tbody { display: block; width: 100%; }
+  .table-wrap tr {
+    display: block;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .table-wrap tr.empty-row { background: transparent; border: none; padding: 1rem; text-align: center; }
+  .table-wrap td {
+    display: flex;
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border: none !important;
+    font-size: 13px;
+    gap: 12px;
+    overflow: visible;
+  }
+  .table-wrap td::before {
+    content: attr(data-label);
+    color: var(--text3); font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    text-align: left; flex-shrink: 0; min-width: 70px;
+  }
+  .table-wrap td[data-label=""]::before,
+  .table-wrap td:not([data-label])::before { display: none; }
+  .table-wrap td.cell-source {
+    border-bottom: 1px solid var(--border) !important;
+    padding-bottom: 8px; margin-bottom: 6px;
+    justify-content: flex-start; gap: 10px;
+  }
+  .table-wrap td.cell-source .num-label { font-family: 'DM Mono', monospace; color: var(--text2); font-size: 12px; }
+  .table-wrap td.cell-source .date-label { color: var(--text3); font-size: 11px; margin-left: auto; }
+  .table-wrap td.cell-client { flex-direction: column; align-items: flex-start; padding: 8px 0 4px; }
+  .table-wrap td.cell-client::before { display: none; }
+  .table-wrap td.cell-client .client-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .table-wrap td.cell-client .client-tel { font-size: 13px; color: var(--accent); text-decoration: none; margin-top: 2px; }
+  .table-wrap td.cell-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    padding: 12px 0 0; margin-top: 8px;
+    border-top: 1px solid var(--border) !important;
+    width: 100%; box-sizing: border-box; overflow: visible;
+  }
+  .table-wrap td.cell-actions::before { display: none; }
+  .table-wrap td.cell-actions .btn-wa,
+  .table-wrap td.cell-actions .btn-status-next {
+    width: 100%; min-width: 0; padding: 12px 8px; font-size: 13px;
+    justify-content: center; white-space: nowrap;
+  }
+  .table-wrap td.cell-actions .btn-refused,
+  .table-wrap td.cell-actions .inv-btn {
+    grid-column: span 2; padding: 10px 14px; font-size: 14px;
+    justify-content: center; width: 100%;
+  }
+  .table-wrap td.cell-actions:has(> button:only-child) { grid-template-columns: 1fr; }
+
+  /* ─── SIDEBAR: slide-in van links ─── */
+  .sidebar {
+    display: flex !important;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh; height: 100dvh;
+    width: 260px;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 100;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+
+  /* ─── Content schuift naar rechts (PUSH) ─── */
+  body.sidebar-open .main-wrap {
+    transform: translateX(260px);
+  }
+
+  /* ─── Hamburger button ─── */
+  .hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 24px;
+    width: 44px; height: 44px;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .hamburger-btn:active { transform: scale(0.9); }
+
+  /* ─── Overlay: donker over content, tap = sluiten ─── */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    z-index: 99;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .sidebar-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ─── Geen body lock — pagina blijft scrollbaar en zichtbaar ─── */
+
+  /* ─── Responsive layout ─── */
   .form-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .analytics-grid { grid-template-columns: 1fr 1fr; }
   #sec-verzending > div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
-  .bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    z-index: 50;
-    height: 60px;
-  }
-  .bottom-nav button {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    background: none;
-    border: none;
-    color: var(--text3);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 10px;
-    cursor: pointer;
-    transition: color 0.15s;
-    padding: 6px 4px;
-  }
-  .bottom-nav button .bn-icon { font-size: 18px; line-height: 1; }
-  .bottom-nav button.active { color: var(--accent); }
-  .bottom-nav button:hover { color: var(--text); }
   .table-wrap { border-radius: 0; border-left: none; border-right: none; }
   td, th { padding: 8px 8px; }
   .main { padding: 1rem 0.75rem; }
@@ -261,9 +524,9 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
   <div class="login-box">
     <div class="login-icon">🚴</div>
     <div class="login-title">Fatbikes.ma</div>
-    <div class="login-sub">Order Dashboard — Voer wachtwoord in</div>
-    <input type="password" id="pw-input" placeholder="Wachtwoord" onkeydown="if(event.key==='Enter')checkLogin()"/>
-    <button class="login-btn" onclick="checkLogin()">Inloggen</button>
+    <div class="login-sub">Tableau de bord — Entrer le mot de passe</div>
+    <input type="password" id="pw-input" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkLogin()"/>
+    <button class="login-btn" onclick="checkLogin()">Se connecter</button>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -283,25 +546,64 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
       </div>
     </div>
     <div class="invoice-section">
-      <h4>Klantgegevens</h4>
-      <div class="invoice-row"><span>Naam</span><span id="inv-nom">—</span></div>
-      <div class="invoice-row"><span>Telefoon</span><span id="inv-tel">—</span></div>
+      <h4>Coordonnées du client</h4>
+      <div class="invoice-row"><span>Nom</span><span id="inv-nom">—</span></div>
+      <div class="invoice-row"><span>Téléphone</span><span id="inv-tel">—</span></div>
       <div class="invoice-row"><span>Email</span><span id="inv-email">—</span></div>
-      <div class="invoice-row"><span>Stad</span><span id="inv-ville">—</span></div>
-      <div class="invoice-row"><span>Adres</span><span id="inv-adres">—</span></div>
+      <div class="invoice-row"><span>Ville</span><span id="inv-ville">—</span></div>
+      <div class="invoice-row"><span>Adresse</span><span id="inv-adres">—</span></div>
     </div>
     <div class="invoice-section">
-      <h4>Bestelling</h4>
-      <div class="invoice-row"><span>Product</span><span id="inv-prod">—</span></div>
-      <div class="invoice-row"><span>Status</span><span id="inv-cmd">—</span></div>
+      <h4>Commande</h4>
+      <div class="invoice-row"><span>Produit</span><span id="inv-prod">—</span></div>
+      <div class="invoice-row"><span>Statut</span><span id="inv-cmd">—</span></div>
     </div>
     <div class="invoice-total">
-      <span class="invoice-total-label">Totaal</span>
+      <span class="invoice-total-label">Total</span>
       <span class="invoice-total-price" id="inv-price">—</span>
     </div>
     <div class="invoice-actions">
-      <button class="btn btn-save" onclick="window.print()">🖨 Afdrukken</button>
-      <button class="btn" onclick="closeInvoice()">Sluiten</button>
+      <button class="btn btn-save" onclick="window.print()">🖨 Imprimer</button>
+      <button class="btn" onclick="closeInvoice()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- v7: CONFIRMER MODAL — verzendgegevens valideren -->
+<div class="modal-overlay hidden" id="confirm-modal">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+    <div style="margin-bottom:1rem">
+      <div style="font-size:18px;font-weight:700">✅ Confirmer la commande <span id="cm-num" style="color:var(--accent)"></span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Vérifiez et complétez les données — elles seront utilisées pour le bordereau de livraison.</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nom complet *</label><input type="text" id="cm-nom" placeholder="Mohammed Alami"/></div>
+      <div class="form-group"><label>Téléphone *</label><input type="text" id="cm-tel" placeholder="0661234567"/></div>
+      <div class="form-group"><label>Ville *</label><input type="text" id="cm-ville" placeholder="Casablanca"/></div>
+      <div class="form-group"><label>Produit</label><input type="text" id="cm-prod" placeholder="Fatbike Ouxi V8 Pro"/></div>
+      <div class="form-group full"><label>Adresse complète *</label><input type="text" id="cm-adres" placeholder="Rue Mohammed V nr 12, étage 3"/></div>
+      <div class="form-group full"><label>Note (optionnel)</label><textarea id="cm-note" rows="2" placeholder="Instructions livreur, étage, point de repère..."></textarea></div>
+    </div>
+    <div id="cm-msg" style="margin:8px 0"></div>
+    <div class="form-actions" style="margin-top:1rem">
+      <button class="btn btn-save" onclick="submitConfirm()">✅ Confirmer & passer à l'expédition</button>
+      <button class="btn" onclick="closeConfirmModal()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- v7: REFUSE MODAL — kies reden van weigering -->
+<div class="modal-overlay hidden" id="refuse-modal">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeRefuseModal()">✕</button>
+    <div style="margin-bottom:1rem">
+      <div style="font-size:18px;font-weight:700">❌ Refuser la commande <span id="rm-num" style="color:var(--red)"></span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Choisissez la raison du refus :</div>
+    </div>
+    <div id="rm-list" style="display:flex;flex-direction:column;gap:8px;margin:1rem 0"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeRefuseModal()">Annuler</button>
     </div>
   </div>
 </div>
@@ -314,87 +616,136 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
   </div>
   <nav class="sidebar-nav">
     <button class="nav-item active" onclick="showSection('orders')" id="nav-orders">
-      <span class="nav-icon">📦</span> Bestellingen
-    </button>
-    <button class="nav-item" onclick="showSection('analytics')" id="nav-analytics">
-      <span class="nav-icon">📊</span> Analytics
+      <span class="nav-icon">📦</span> Commandes
     </button>
     <button class="nav-item" onclick="showSection('voorraad')" id="nav-voorraad">
-      <span class="nav-icon">📦</span> Voorraad
+      <span class="nav-icon">📊</span> Stock
     </button>
     <button class="nav-item accent" onclick="showSection('whatsapp')" id="nav-whatsapp">
       <span class="nav-icon">💬</span> + WhatsApp
     </button>
     <button class="nav-item" onclick="showSection('verzending')" id="nav-verzending">
-      <span class="nav-icon">🚚</span> Verzending
+      <span class="nav-icon">🚚</span> Expédition
     </button>
     <button class="nav-item" onclick="showSection('instellingen')" id="nav-instellingen">
-      <span class="nav-icon">⚙</span> Instellingen
+      <span class="nav-icon">⚙</span> Paramètres
     </button>
   </nav>
   <div class="sidebar-footer">
     <span class="status-dot" id="status-dot"></span>
-    <span id="api-status">Verbinden...</span>
+    <span id="api-status">Connexion...</span>
   </div>
 </aside>
 
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
 <div class="main-wrap">
   <div class="topbar">
-    <div class="topbar-title" id="topbar-title">Bestellingen</div>
+    <div style="display:flex;align-items:center;flex:1;min-width:0;">
+      <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="topbar-title" id="topbar-title">Commandes</div>
+    </div>
     <div>
-      <button class="refresh-btn" onclick="loadWooOrders(true)" id="refresh-btn">↻ Vernieuwen</button>
+      <button class="refresh-btn" onclick="loadWooOrders(true)" id="refresh-btn">↻ Actualiser</button>
     </div>
   </div>
   <div class="main">
 
-    <!-- BESTELLINGEN -->
+    <!-- COMMANDES -->
     <div class="section active" id="sec-orders">
-      <div class="stats-grid" id="stats"></div>
-      <div class="controls">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="search" placeholder="Zoek naam, stad, product..." oninput="renderOrders()"/>
+
+      <!-- Hoofdview tabs: Atelier vs Toutes les Commandes -->
+      <div class="view-tabs" style="margin-bottom: 1.25rem">
+        <button class="view-tab active" onclick="switchOrdersView('atelier')" id="vt-atelier">⚡ Atelier d'Actions</button>
+        <button class="view-tab" onclick="switchOrdersView('archive')" id="vt-archive">📚 Toutes les Commandes</button>
+      </div>
+
+      <!-- ATELIER D'ACTIONS -->
+      <div id="view-atelier">
+        <div class="atelier-header">
+          <h3>Atelier d'Actions</h3>
+          <button class="add-order-btn" onclick="showSection('whatsapp')">
+            <span style="font-size:18px">＋</span> Ajouter une commande
+          </button>
         </div>
-        <select id="f-status" onchange="renderOrders()">
-          <option value="">Alle statussen</option>
-          <option value="bellen">📞 Te bellen</option>
-          <option value="oui">✅ Goedgekeurd</option>
-          <option value="non">❌ Geweigerd</option>
-        </select>
-        <select id="f-bron" onchange="renderOrders()">
-          <option value="">Alle bronnen</option>
-          <option value="woo">WooCommerce</option>
-          <option value="whatsapp">WhatsApp</option>
-        </select>
+
+        <div class="view-tabs" id="atelier-tabs">
+          <button class="view-tab active" onclick="switchAtelierTab('a_appeler')" id="at-a_appeler">
+            📞 À Appeler <span class="badge-count" id="cnt-a_appeler">0</span>
+          </button>
+          <button class="view-tab" onclick="switchAtelierTab('en_attente')" id="at-en_attente">
+            🔁 À Rappeler <span class="badge-count" id="cnt-en_attente">0</span>
+          </button>
+          <button class="view-tab" onclick="switchAtelierTab('a_expedier')" id="at-a_expedier">
+            🚚 À Expédier <span class="badge-count" id="cnt-a_expedier">0</span>
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Commande</th>
+                <th>Client</th>
+                <th>Ville</th>
+                <th>Produit</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-atelier"></tbody>
+          </table>
+        </div>
+        <div class="count-label" id="count-atelier"></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th onclick="sortBy('date')">Datum</th>
-              <th onclick="sortBy('num')">#</th>
-              <th onclick="sortBy('nom')">Naam</th>
-              <th>Telefoon</th>
-              <th onclick="sortBy('prod')">Product</th>
-              <th onclick="sortBy('cmd')">Status</th>
-              <th onclick="sortBy('ville')">Stad</th>
-              <th>Bron</th>
-              <th>Acties</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+
+      <!-- TOUTES LES COMMANDES -->
+      <div id="view-archive" style="display:none">
+        <div class="stats-grid" id="stats"></div>
+        <div class="controls">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search" placeholder="Rechercher par téléphone ou nom..." oninput="renderOrders()"/>
+          </div>
+          <select id="f-status" onchange="renderOrders()">
+            <option value="">Tous les statuts</option>
+            <option value="a_appeler">📞 À Appeler</option>
+            <option value="en_attente">⏳ En Attente</option>
+            <option value="confirme">✅ Confirmé</option>
+            <option value="expedie">📦 Expédié</option>
+            <option value="refuse">❌ Refusé</option>
+          </select>
+          <select id="f-bron" onchange="renderOrders()">
+            <option value="">Toutes les sources</option>
+            <option value="woo">🌐 Web (WooCommerce)</option>
+            <option value="whatsapp">💬 WhatsApp / Manuel</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortBy('num')">Commande</th>
+                <th onclick="sortBy('nom')">Client</th>
+                <th onclick="sortBy('ville')">Ville</th>
+                <th onclick="sortBy('prod')">Produit</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="count-label" id="count-label"></div>
       </div>
-      <div class="count-label" id="count-label"></div>
     </div>
 
-    <!-- VOORRAAD -->
+    <!-- STOCK -->
     <div class="section" id="sec-voorraad">
       <div class="stock-grid" id="stock-cards">
-        <div style="color:var(--text3);font-size:13px">Laden...</div>
+        <div style="color:var(--text3);font-size:13px">Chargement...</div>
       </div>
       <div style="margin-top:1.25rem">
-        <button class="refresh-btn" onclick="loadVoorraad()">↻ Vernieuwen</button>
+        <button class="refresh-btn" onclick="loadVoorraad()">↻ Actualiser</button>
       </div>
     </div>
 
@@ -431,87 +782,75 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
       </div>
     </div>
 
-    <!-- WHATSAPP -->
+    <!-- WHATSAPP / NOUVELLE COMMANDE MANUELLE -->
     <div class="section" id="sec-whatsapp">
       <div class="form-card">
-        <div class="form-title">Nieuwe WhatsApp bestelling</div>
+        <div class="form-title">Nouvelle commande manuelle (WhatsApp / téléphone)</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:1rem">
+          ℹ️ Les commandes ajoutées ici sont automatiquement marquées <strong>Confirmé</strong> et apparaissent dans <strong>À Expédier</strong>.
+        </div>
         <div class="form-grid">
-          <div class="form-group"><label>Naam klant *</label><input type="text" id="wa-naam" placeholder="Mohammed Alami"/></div>
-          <div class="form-group"><label>Telefoon *</label><input type="text" id="wa-tel" placeholder="0661234567"/></div>
-          <div class="form-group"><label>Product *</label>
+          <div class="form-group"><label>Nom du client *</label><input type="text" id="wa-naam" placeholder="Mohammed Alami"/></div>
+          <div class="form-group"><label>Téléphone *</label><input type="text" id="wa-tel" placeholder="0661234567"/></div>
+          <div class="form-group"><label>Produit *</label>
             <select id="wa-prod">
-              <option value="Fatbike ouxi V8 pro">Fatbike ouxi V8 pro</option>
-              <option value="Troitnette X8">Troitnette X8</option>
-              <option value="Ander product">Ander product</option>
+              <option value="Fatbike ouxi V8 pro">Fatbike Ouxi V8 Pro</option>
+              <option value="Troitnette X8">Trottinette X8</option>
+              <option value="Ander product">Autre produit</option>
             </select>
           </div>
-          <div class="form-group"><label>Stad</label><input type="text" id="wa-ville" placeholder="Casablanca"/></div>
-          <div class="form-group"><label>Status</label>
-            <select id="wa-status">
-              <option value="Oui">✅ Bevestigd</option>
-              <option value="Non">❌ Geweigerd</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Reden</label><input type="text" id="wa-raison" placeholder="Te duur..."/></div>
-          <div class="form-group full"><label>Notitie</label><textarea id="wa-note" rows="3" placeholder="Extra info..."></textarea></div>
+          <div class="form-group"><label>Ville *</label><input type="text" id="wa-ville" placeholder="Casablanca"/></div>
+          <input type="hidden" id="wa-status" value="Oui"/>
+          <div class="form-group full"><label>Note</label><textarea id="wa-note" rows="3" placeholder="Adresse exacte, instructions..."></textarea></div>
         </div>
         <div class="form-actions">
-          <button class="btn btn-save" onclick="saveWhatsapp()">Opslaan</button>
-          <button class="btn" onclick="showSection('orders')">Annuleren</button>
+          <button class="btn btn-save" onclick="saveWhatsapp()">💾 Enregistrer</button>
+          <button class="btn" onclick="showSection('orders')">Annuler</button>
         </div>
         <div id="wa-msg"></div>
       </div>
     </div>
 
-    <!-- VERZENDING -->
+    <!-- EXPÉDITION — v7.5 herschikt: À expédier + bon form bovenaan, Livré onderaan -->
     <div class="section" id="sec-verzending">
       <div class="stats-grid" id="verzend-stats"></div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
-        <!-- Te verzenden -->
-        <div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Te verzenden</div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr>
-                <th>#</th><th>Naam</th><th>Product</th><th>Stad</th><th>Actie</th>
-              </tr></thead>
-              <tbody id="tbl-te-verzenden"></tbody>
-            </table>
-          </div>
+      <!-- 1) Bovenaan: À expédier (klaar voor bordereau) -->
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:13px;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">
+          📦 À expédier — bordereau de livraison
         </div>
-        <!-- Verzonden -->
-        <div>
-          <div style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Verzonden</div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr>
-                <th>#</th><th>Naam</th><th>Track & Trace</th><th>Status</th>
-              </tr></thead>
-              <tbody id="tbl-verzonden"></tbody>
-            </table>
-          </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Nom</th><th>Produit</th><th>Ville</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="tbl-te-verzenden"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Zending aanmaken -->
-      <div class="form-card" style="max-width:100%;margin-top:0.5rem">
-        <div class="form-title">Nieuwe zending aanmaken — OzonExpres</div>
+      <!-- 2) Daaronder: Form om expedition aan te maken (prominent) -->
+      <div class="form-card" style="max-width:100%;margin-bottom:1.5rem">
+        <div class="form-title">📋 Créer / imprimer un bordereau de livraison</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:1rem">
+          Cliquez "📦 Préparer" sur une commande ci-dessus pour pré-remplir, puis créez l'expédition OzonExpres ou imprimez le bon en PDF.
+        </div>
         <div class="form-grid">
           <div class="form-group">
-            <label>Bestelling #</label>
+            <label>Commande #</label>
             <input type="text" id="oz-num" placeholder="17356"/>
           </div>
           <div class="form-group">
-            <label>Ontvanger naam</label>
+            <label>Nom du destinataire</label>
             <input type="text" id="oz-naam" placeholder="Mohammed Alami"/>
           </div>
           <div class="form-group">
-            <label>Telefoon</label>
+            <label>Téléphone</label>
             <input type="text" id="oz-tel" placeholder="0661234567"/>
           </div>
           <div class="form-group">
-            <label>Stad</label>
+            <label>Ville</label>
             <select id="oz-stad">
               <option value="1">Casablanca</option>
               <option value="2">Rabat</option>
@@ -542,33 +881,52 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
             </select>
           </div>
           <div class="form-group full">
-            <label>Adres</label>
+            <label>Adresse</label>
             <input type="text" id="oz-adres" placeholder="Rue Mohammed V, nr 12"/>
           </div>
           <div class="form-group">
-            <label>Bedrag (MAD)</label>
+            <label>Produit</label>
+            <input type="text" id="oz-prod" placeholder="Fatbike Ouxi V8 Pro"/>
+          </div>
+          <div class="form-group">
+            <label>Montant (MAD)</label>
             <input type="number" id="oz-bedrag" placeholder="0"/>
           </div>
           <div class="form-group">
-            <label>Aantal colli</label>
+            <label>Nombre de colis</label>
             <input type="number" id="oz-stock" placeholder="1" value="1"/>
           </div>
         </div>
-        <div class="form-actions">
-          <button class="btn btn-save" onclick="maakZending()">📦 Zending aanmaken</button>
-          <button class="btn" onclick="renderVerzending()">↻ Vernieuwen</button>
+        <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-save" onclick="maakZending()">📦 Créer expédition OzonExpres</button>
+          <button class="btn" style="background:var(--accent);color:#fff;border:none" onclick="printBon()">🖨 Imprimer bon PDF</button>
+          <button class="btn" onclick="renderVerzending()">↻ Actualiser</button>
         </div>
         <div id="oz-msg"></div>
-
       </div>
+
+      <!-- 3) Onderaan: Livré (al bezorgd) — collapsable / minder prominent -->
+      <details style="margin-top:2rem">
+        <summary style="cursor:pointer;font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;font-weight:600;padding:10px 0;user-select:none">
+          ✓ Déjà livré (<span id="livre-count">0</span>) — cliquez pour afficher
+        </summary>
+        <div class="table-wrap" style="margin-top:8px">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Nom</th><th>Track & Trace</th><th>Statut</th>
+            </tr></thead>
+            <tbody id="tbl-verzonden"></tbody>
+          </table>
+        </div>
+      </details>
     </div>
 
-    <!-- INSTELLINGEN -->
+    <!-- PARAMÈTRES -->
     <div class="section" id="sec-instellingen">
       <div class="settings-section">
         <div class="settings-card">
           <div class="settings-title">WooCommerce API</div>
-          <div class="settings-sub">API sleutels zijn ingesteld voor fatbikes.ma.</div>
+          <div class="settings-sub">Les clés API sont configurées pour fatbikes.ma.</div>
           <div class="api-fields">
             <input type="text" id="woo-url" value="https://fatbikes.ma" readonly/>
             <input type="text" id="woo-ck" placeholder="Consumer Key" readonly value="ck_dd100912340ceb1429b19cb0d0c083bf0c392930"/>
@@ -577,10 +935,10 @@ tr.rij-bellen td { background: rgba(255,107,53,0.04); }
           <div id="api-msg"></div>
         </div>
         <div class="settings-card">
-          <div class="settings-title">Verbindingsstatus</div>
+          <div class="settings-title">État de la connexion</div>
           <div style="font-size:13px;color:var(--text2);margin-top:4px">
             <span class="status-dot" id="status-dot2"></span>
-            <span id="api-status2">Verbinden...</span>
+            <span id="api-status2">Connexion...</span>
           </div>
         </div>
       </div>
@@ -616,12 +974,105 @@ const sheetData = [
 
 let waOrders = JSON.parse(localStorage.getItem('wa_orders') || '[]');
 let lokaleStatussen = JSON.parse(localStorage.getItem('lokale_statussen') || '{}');
+let lokaleMeta = JSON.parse(localStorage.getItem('lokale_meta') || '{}');  // v7: per-order metadata (attempts, refuse_reason, confirmed_data)
 let wooOrders = [];
+
+// === v7 helpers — order metadata (call attempts, refuse reason, confirmed delivery data) ===
+function getMeta(num) { return lokaleMeta[num] || {}; }
+function setMeta(num, key, value) {
+  if (!lokaleMeta[num]) lokaleMeta[num] = {};
+  lokaleMeta[num][key] = value;
+  lokaleMeta[num].updated_at = Date.now();
+  localStorage.setItem('lokale_meta', JSON.stringify(lokaleMeta));
+}
+function getAttempts(num) { return (getMeta(num).attempts) || 0; }
+function getRefuseReason(num) { return getMeta(num).refuse_reason || ''; }
+function getConfirmedData(num) { return getMeta(num).confirmed_data || null; }
+function getEffectiveOrder(num) {
+  // Geeft de order met confirmed_data merged (als beschikbaar) — voor verzending
+  const o = getAllOrders().find(x => x.num === num);
+  if (!o) return null;
+  const cd = getConfirmedData(num);
+  if (!cd) return o;
+  return Object.assign({}, o, cd);
+}
+
+// === v7.1 — Eenmalige migratie: 17 verzonden orders + geannuleerde uit oude spreadsheet ===
+(function migrateOldOrdersV7_1(){
+  if (localStorage.getItem('migrated_old_orders_v7_1') === '1') return;
+
+  // 1. Oude sheetData orders — status update op basis van OzonExpres tracking + user input
+  var sheetStatusMap = {
+    '17356': 'expedie',  // Adil Chakhtouna — verzonden
+    '17357': 'refuse',   // Mehdi Iraki — Trop cher
+    '17360': 'refuse',   // Youness Ziani
+    '17361': 'refuse',   // Abedrahim Lbouti
+    '17362': 'refuse',   // Mounir Ayouch
+    '17364': 'refuse',   // Yahya Rouai
+    '17365': 'refuse',   // Abdelilah Daki
+    '17373': 'expedie',  // Tayeb Zerroual — verzonden
+    '17374': 'expedie',  // Munir Alhamati — verzonden
+    '17375': 'refuse',   // Ahmed Jadani
+    '17377': 'refuse',   // Mohammed Asmar — geannuleerd na akkoord (niet in OzonExpres)
+    '17378': 'refuse',   // Hamza Ameziane
+    '17382': 'refuse',   // Fahd Aourz
+    '17384': 'expedie',  // Mohamed Oukhouya — verzonden
+    '17385': 'expedie',  // dra Mohammed — verzonden
+  };
+  Object.keys(sheetStatusMap).forEach(function(num){
+    lokaleStatussen[num] = sheetStatusMap[num];
+  });
+  // Refuse-reason voor de bekende
+  if (!lokaleMeta['17357']) lokaleMeta['17357'] = {};
+  lokaleMeta['17357'].refuse_reason = 'Trop cher';
+
+  // 2. Nieuwe OzonExpres orders (niet in oude spreadsheet) — toevoegen + status expedie
+  var newOrders = [
+    {date:'05/02/2026', num:'CMD-05022026-39139', nom:'Kamal Fahsi',              email:'', tel:'0664030056',    prod:'Trottinette X8',       cmd:'expedie', raison:'', ville:'Tanger',         adres:'Avenue Moulay Rachid 1',                            bron:'whatsapp'},
+    {date:'05/02/2026', num:'CMD-05022026-05987', nom:'Abdellah Haki',            email:'', tel:'0600650204',    prod:'Trottinette X8',       cmd:'expedie', raison:'', ville:'Mohammedia',     adres:'Ben Yakhlef',                                       bron:'whatsapp'},
+    {date:'04/02/2026', num:'CMD-04022026-45458', nom:'Nordine Hanafi',           email:'', tel:'0653480995',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Berkan',         adres:'Douar Zrayeb',                                      bron:'whatsapp'},
+    {date:'30/01/2026', num:'CMD-30012026-50603', nom:'Alaa Eddine Bouchengour',  email:'', tel:'0695614370',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Casablanca',     adres:'Triq Jdid Dar 16',                                  bron:'whatsapp'},
+    {date:'14/01/2026', num:'CMD-14012026-39235', nom:'Nabil Aoulad Ali',         email:'', tel:'0693334035',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Imzourne',       adres:'Hay Tijari Qisariya Aljadida',                      bron:'whatsapp'},
+    {date:'08/01/2026', num:'CMD-08012026-98464', nom:'Tinamlal Sobhi',           email:'', tel:'0625320626',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Taferssit',      adres:'Douar Hammouda Tafersit',                           bron:'whatsapp'},
+    {date:'20/12/2025', num:'CMD-20122025-64129', nom:'Abdelaziz',                email:'', tel:'0768893885',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Midar - Oujda',  adres:'Midar Lajouns El Kiran',                            bron:'whatsapp'},
+    {date:'20/12/2025', num:'CMD-20122025-79483', nom:'Redouane',                 email:'', tel:'0663633667',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Laayoun',        adres:'Av Mohamed 6',                                      bron:'whatsapp'},
+    {date:'13/12/2025', num:'CMD-13122025-79080', nom:'Ali Hassoune',             email:'', tel:'0661081797',    prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Nador',          adres:'Hay Elmatar',                                       bron:'whatsapp'},
+    {date:'03/12/2025', num:'CMD-03122025-73915', nom:'Tyrone Weathers',         email:'', tel:'+17048403148',  prod:'Fatbike Ouxi V8 Pro',  cmd:'expedie', raison:'', ville:'Agadir',         adres:'Résidence Les Jardins, étage 3, appartement N°2',   bron:'whatsapp'},
+  ];
+  newOrders.forEach(function(o){
+    var exists = waOrders.some(x => x.num === o.num);
+    if (!exists) waOrders.push(o);
+    lokaleStatussen[o.num] = 'expedie';
+  });
+
+  // Save all
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  localStorage.setItem('lokale_meta', JSON.stringify(lokaleMeta));
+  localStorage.setItem('wa_orders', JSON.stringify(waOrders));
+  localStorage.setItem('migrated_old_orders_v7_1', '1');
+  console.log('[v7.1] Migrated old orders: 10 new OzonExpres + 15 statuses updated');
+})();
+
+// Refuse redenen (Frans)
+const REFUSE_REASONS = [
+  { id:'trop_cher',     icon:'💸', label:'Trop cher' },
+  { id:'pas_repondu',   icon:'📵', label:'Pas répondu (3+ essais)' },
+  { id:'adresse_inc',   icon:'🏠', label:'Adresse incomplète' },
+  { id:'absent',        icon:'🚪', label:'Client absent' },
+  { id:'numero_faux',   icon:'🔢', label:'Numéro incorrect' },
+  { id:'annule',        icon:'❌', label:'Client a annulé' },
+  { id:'autre',         icon:'📝', label:'Autre raison' },
+];
 let sortKey = 'date';
 let sortDir = -1;
 let renderedRows = [];
 
-const SECTION_TITLES = { orders:'Bestellingen', analytics:'Analytics', voorraad:'Voorraad', whatsapp:'+ WhatsApp', verzending:'Verzending', instellingen:'Instellingen' };
+const SECTION_TITLES = { orders:'Commandes', voorraad:'Stock', whatsapp:'+ Commande manuelle', verzending:'Expédition', instellingen:'Paramètres' };
+const STATUS_LABELS = { a_appeler:'📞 À Appeler', en_attente:'⏳ En Attente', confirme:'✅ Confirmé', expedie:'📦 Expédié', refuse:'❌ Refusé' };
+const STATUS_NEXT = { a_appeler:'en_attente', en_attente:'confirme', confirme:'expedie' };
+const STATUS_NEXT_LABEL = { a_appeler:'Appelé', en_attente:'Confirmer', confirme:'Marquer expédié' };
+let currentOrdersView = 'atelier';   // atelier | archive
+let currentAtelierTab = 'a_appeler'; // a_appeler | en_attente | a_expedier
 
 function showSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -637,9 +1088,39 @@ function showSection(name) {
   if (rb) rb.style.display = name === 'orders' ? '' : 'none';
   if (name === 'verzending') renderVerzending().catch(()=>{});
   if (name === 'voorraad') loadVoorraad();
+  if (name === 'orders') {
+    // Render huidige view (atelier of archive)
+    if (currentOrdersView === 'atelier') renderAtelier(); else renderOrders();
+  }
+  // Mobile: sluit sidebar na nav-keuze
+  if (window.innerWidth <= 768) closeSidebar();
 }
 
-function getAllOrders() { return [...sheetData, ...waOrders, ...wooOrders]; }
+function toggleSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  const isOpen = sb.classList.toggle('open');
+  ov.classList.toggle('open', isOpen);
+  document.body.classList.toggle('sidebar-open', isOpen);
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.body.classList.remove('sidebar-open');
+}
+
+// v7.4: dedupe op num — sheetData wint (heeft betere data zoals ville), dan waOrders, dan wooOrders
+function getAllOrders() {
+  const merged = [...sheetData, ...waOrders, ...wooOrders];
+  const seen = new Set();
+  return merged.filter(o => {
+    const key = (o.num || '').toString().trim();
+    if (!key) return true; // orders zonder num: altijd tonen (kunnen niet ge-dedupd worden)
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 function renderOrders() {
   const search  = (document.getElementById('search').value || '').toLowerCase();
@@ -647,8 +1128,13 @@ function renderOrders() {
   const fBron   = (document.getElementById('f-bron').value || '').toLowerCase();
 
   let rows = getAllOrders().filter(o => {
-    const ms = !search || (o.nom||'').toLowerCase().includes(search) || (o.ville||'').toLowerCase().includes(search)
-      || (o.prod||'').toLowerCase().includes(search) || (o.num||'').toLowerCase().includes(search) || (o.tel||'').toLowerCase().includes(search);
+    const tel = (o.tel||'').replace(/\s+/g, '').toLowerCase();
+    const ms = !search ||
+      (o.nom||'').toLowerCase().includes(search) ||
+      tel.includes(search.replace(/\s+/g, '')) ||
+      (o.ville||'').toLowerCase().includes(search) ||
+      (o.prod||'').toLowerCase().includes(search) ||
+      (o.num||'').toLowerCase().includes(search);
     const mst = !fStatus || effectiefCmd(o) === fStatus;
     const mb  = !fBron   || (o.bron||'').toLowerCase() === fBron;
     return ms && mst && mb;
@@ -664,7 +1150,7 @@ function renderOrders() {
   const tbody = document.getElementById('tbody');
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">Geen orders gevonden</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-msg">Aucune commande trouvée</div></div></td></tr>';
     document.getElementById('count-label').textContent = '';
     renderStats();
     return;
@@ -672,46 +1158,46 @@ function renderOrders() {
 
   tbody.innerHTML = rows.map((o, i) => {
     const eff = effectiefCmd(o);
-    const bb = o.bron === 'whatsapp' ? 'b-wa' : 'b-woo';
-    let badge, acties;
-    if (eff === 'oui') {
-      badge = '<span class="badge b-oui">✅ Goedgekeurd</span>';
-      acties = `<button class="inv-btn" onclick="naarVerzending('${o.num}')">📦 Verzenden</button> <button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})">📄</button>`;
-    } else if (eff === 'non') {
-      badge = '<span class="badge b-non">❌ Geweigerd</span>';
-      acties = `<button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})">📄</button>`;
-    } else {
-      badge = '<span class="badge b-bellen">📞 Bellen</span>';
-      acties = `<button class="btn-ok" onclick="keurGoed('${o.num}')">✅ OK</button> <button class="btn-nee" onclick="weigerOrder('${o.num}')">❌ Nee</button>`;
-    }
-    const trClass = eff === 'bellen' ? ' class="rij-bellen"' : '';
-    return `<tr${trClass}>
-      <td class="mono">${o.date||'-'}</td>
-      <td class="mono">${o.num||'-'}</td>
-      <td title="${o.nom||''}">${o.nom||'-'}</td>
-      <td class="mono">${o.tel||'-'}</td>
-      <td title="${o.prod||''}">${o.prod||'-'}</td>
-      <td>${badge}</td>
-      <td>${o.ville||'-'}</td>
-      <td><span class="badge ${bb}">${o.bron||'-'}</span></td>
-      <td style="white-space:nowrap">${acties}</td>
+    const isWeb = o.bron === 'woo';
+    const sourceIcon = isWeb
+      ? '<span class="source-icon web" title="Web (WooCommerce)">🌐</span>'
+      : '<span class="source-icon wa" title="WhatsApp / Manuel">💬</span>';
+    const badge = `<span class="badge b-${eff}">${STATUS_LABELS[eff] || eff}</span>`;
+    const tel = (o.tel || '').replace(/\s+/g, '');
+    const telLink = tel ? `<a href="tel:${tel}" class="client-tel">📞 ${o.tel}</a>` : '<span class="client-tel">—</span>';
+    const waBtn = tel ? `<button class="btn-wa" onclick="openWhatsAppForOrder('${o.num}')" title="WhatsApp">💬</button>` : '';
+    const invBtn = `<button class="inv-btn" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border)" onclick="openInvoice(${i})" title="Facture">📄</button>`;
+    const nextBtn = STATUS_NEXT[eff]
+      ? `<button class="btn-status-next" onclick="advanceStatus('${o.num}')" title="${STATUS_NEXT_LABEL[eff]}">➡️</button>`
+      : '';
+    return `<tr>
+      <td class="cell-source">${sourceIcon}<span class="num-label">#${o.num||'—'}</span><span class="date-label">${o.date||''}</span></td>
+      <td class="cell-client"><span class="client-name">${o.nom||'—'}</span>${telLink}</td>
+      <td data-label="Ville">${o.ville||'<span style="color:#f87171">⚠ Manquant</span>'}</td>
+      <td data-label="Produit" title="${o.prod||''}">${o.prod||'—'}</td>
+      <td data-label="Statut">${badge}</td>
+      <td class="cell-actions">${waBtn} ${nextBtn} ${invBtn}</td>
     </tr>`;
   }).join('');
 
-  document.getElementById('count-label').textContent = `${rows.length} order${rows.length !== 1 ? 's' : ''}`;
+  document.getElementById('count-label').textContent = `${rows.length} commande${rows.length !== 1 ? 's' : ''}`;
   renderStats();
 }
 
 function renderStats() {
-  const all     = getAllOrders();
-  const bellen  = all.filter(o => effectiefCmd(o) === 'bellen').length;
-  const oui     = all.filter(o => effectiefCmd(o) === 'oui').length;
-  const non     = all.filter(o => effectiefCmd(o) === 'non').length;
-  document.getElementById('stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Totaal</div><div class="stat-value">${all.length}</div></div>
-    <div class="stat-card" style="border-color:rgba(255,107,53,0.3)"><div class="stat-label">📞 Te bellen</div><div class="stat-value orange">${bellen}</div></div>
-    <div class="stat-card"><div class="stat-label">✅ Goedgekeurd</div><div class="stat-value green">${oui}</div></div>
-    <div class="stat-card"><div class="stat-label">❌ Geweigerd</div><div class="stat-value red">${non}</div></div>`;
+  const all      = getAllOrders();
+  const aAppeler = all.filter(o => effectiefCmd(o) === 'a_appeler').length;
+  const enAtt    = all.filter(o => effectiefCmd(o) === 'en_attente').length;
+  const conf     = all.filter(o => effectiefCmd(o) === 'confirme').length;
+  const ref      = all.filter(o => effectiefCmd(o) === 'refuse').length;
+  const statsEl  = document.getElementById('stats');
+  if (!statsEl) return;
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat-card" style="border-color:rgba(255,107,53,0.3)"><div class="stat-label">📞 À Appeler</div><div class="stat-value orange">${aAppeler}</div></div>
+    <div class="stat-card"><div class="stat-label">⏳ En Attente</div><div class="stat-value">${enAtt}</div></div>
+    <div class="stat-card"><div class="stat-label">✅ Confirmé</div><div class="stat-value green">${conf}</div></div>
+    <div class="stat-card"><div class="stat-label">❌ Refusé</div><div class="stat-value red">${ref}</div></div>`;
 }
 
 function sortBy(key) {
@@ -954,38 +1440,51 @@ function renderGA4(data) {
   }
 })();
 
-// WHATSAPP
+// COMMANDE MANUELLE (WhatsApp / téléphone)
 function saveWhatsapp() {
-  const naam = document.getElementById('wa-naam').value.trim();
-  const tel  = document.getElementById('wa-tel').value.trim();
-  if (!naam || !tel) {
-    document.getElementById('wa-msg').innerHTML = '<div class="msg msg-err">Naam en telefoon zijn verplicht.</div>';
+  const naam  = document.getElementById('wa-naam').value.trim();
+  const tel   = document.getElementById('wa-tel').value.trim();
+  const ville = document.getElementById('wa-ville').value.trim();
+  if (!naam || !tel || !ville) {
+    document.getElementById('wa-msg').innerHTML = '<div class="msg msg-err">Nom, téléphone et ville sont obligatoires.</div>';
     return;
   }
+  const num = 'WA-' + Date.now();
   const order = {
-    date: new Date().toLocaleDateString('nl-BE'), num: 'WA-' + Date.now(),
-    nom: naam, email: '', tel, prod: document.getElementById('wa-prod').value,
-    cmd: document.getElementById('wa-status').value,
-    raison: document.getElementById('wa-raison').value.trim(),
-    ville: document.getElementById('wa-ville').value.trim(),
-    adres: '', note: document.getElementById('wa-note').value.trim(), bron: 'whatsapp'
+    date: new Date().toLocaleDateString('fr-FR'),
+    num,
+    nom: naam, email: '', tel,
+    prod: document.getElementById('wa-prod').value,
+    cmd: 'confirme',
+    raison: '',
+    ville,
+    adres: '',
+    note: document.getElementById('wa-note').value.trim(),
+    bron: 'whatsapp'
   };
   waOrders.push(order);
   localStorage.setItem('wa_orders', JSON.stringify(waOrders));
-  document.getElementById('wa-msg').innerHTML = '<div class="msg msg-ok">Opgeslagen!</div>';
-  ['wa-naam','wa-tel','wa-ville','wa-raison','wa-note'].forEach(id => document.getElementById(id).value = '');
-  setTimeout(() => showSection('orders'), 1000);
+  // Direct status confirme → verschijnt in À Expédier
+  lokaleStatussen[num] = 'confirme';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  document.getElementById('wa-msg').innerHTML = '<div class="msg msg-ok">✅ Commande enregistrée — visible dans "À Expédier".</div>';
+  ['wa-naam','wa-tel','wa-ville','wa-note'].forEach(id => document.getElementById(id).value = '');
+  setTimeout(() => {
+    showSection('orders');
+    switchOrdersView('atelier');
+    switchAtelierTab('a_expedier');
+  }, 900);
 }
 
 function updateApiStatus(ok) {
   [document.getElementById('status-dot'), document.getElementById('status-dot2')].forEach(d => { if(d) { d.classList.toggle('connected', ok); } });
-  const txt = ok ? 'fatbikes.ma' : 'Verbinding mislukt';
+  const txt = ok ? 'fatbikes.ma' : 'Connexion échouée';
   [document.getElementById('api-status'), document.getElementById('api-status2')].forEach(el => { if(el) el.textContent = txt; });
 }
 
 async function loadWooOrders(fromRefresh) {
   const btn = document.getElementById('refresh-btn');
-  if (btn) btn.textContent = '↻ Laden...';
+  if (btn) btn.textContent = '↻ Chargement...';
   try {
     const resp = await fetch(`${WOO_URL}/wp-json/wc/v3/orders?per_page=100&consumer_key=${WOO_CK}&consumer_secret=${WOO_CS}`);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -997,16 +1496,44 @@ async function loadWooOrders(fromRefresh) {
       nom: `${o.billing?.first_name||''} ${o.billing?.last_name||''}`.trim(),
       email: o.billing?.email||'', tel: o.billing?.phone||'',
       prod: o.line_items?.map(i => i.name).join(', ')||'',
-      price: o.total, cmd: o.status === 'completed' ? 'oui' : (o.status === 'cancelled' || o.status === 'refunded') ? 'non' : 'bellen',
+      price: o.total,
+      // Default: nieuwe WC orders → a_appeler. Local override (lokaleStatussen) wint via effectiefCmd().
+      cmd: (o.status === 'cancelled' || o.status === 'refunded') ? 'refuse' : 'a_appeler',
       raison:'', ville: o.billing?.city||'', adres: o.billing?.address_1||'', bron:'woo'
     }));
+
+    // === v7.2: Eenmalige cleanup van oude WC orders (rest = annulé volgens user) ===
+    if (localStorage.getItem('migrated_wc_old_orders_v7_2') !== '1') {
+      var today = new Date(); today.setHours(0,0,0,0);
+      function parseDDMMYYYY(d) {
+        if (!d) return null;
+        var p = d.split('/');
+        return p.length === 3 ? new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0])) : null;
+      }
+      var marked = 0;
+      wooOrders.forEach(function(o){
+        if (lokaleStatussen[o.num]) return;  // skip als al status set (door eerdere migratie)
+        var d = parseDDMMYYYY(o.date);
+        if (d && d < today) {
+          lokaleStatussen[o.num] = 'refuse';
+          if (!lokaleMeta[o.num]) lokaleMeta[o.num] = {};
+          lokaleMeta[o.num].refuse_reason = 'Client a annulé (migration)';
+          marked++;
+        }
+      });
+      localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+      localStorage.setItem('lokale_meta', JSON.stringify(lokaleMeta));
+      localStorage.setItem('migrated_wc_old_orders_v7_2', '1');
+      console.log('[v7.2] ' + marked + ' oude WC orders gemarkeerd als refusé');
+    }
+
     updateApiStatus(true);
-    renderOrders();
+    if (currentOrdersView === 'atelier') renderAtelier(); else renderOrders();
   } catch(e) {
     updateApiStatus(false);
-    if (fromRefresh) alert('WooCommerce laden mislukt: ' + e.message);
+    if (fromRefresh) alert('Chargement WooCommerce échoué: ' + e.message);
   }
-  if (btn) btn.textContent = '↻ Vernieuwen';
+  if (btn) btn.textContent = '↻ Actualiser';
 }
 
 const GA4_PROPERTY_ID = '492800314';
@@ -1015,13 +1542,15 @@ window.addEventListener('DOMContentLoaded', function() {
   if (sessionStorage.getItem('fb_auth') === '1') {
     document.getElementById('login-overlay').style.display = 'none';
   }
-  renderOrders();
+  // Default view = Atelier d'Actions
+  renderAtelier();
   loadWooOrders(false);
-  // Property ID is hardcoded — always show GA4 dashboard
-  localStorage.setItem('ga4_property_id', GA4_PROPERTY_ID);
-  document.getElementById('ga4-id-input').value = GA4_PROPERTY_ID;
-  showGA4Dashboard();
-  loadGA4Data();
+  // Analytics is verwijderd uit menu maar HTML staat er nog — silently skip GA4 init
+  try {
+    localStorage.setItem('ga4_property_id', GA4_PROPERTY_ID);
+    const ga4In = document.getElementById('ga4-id-input');
+    if (ga4In) { ga4In.value = GA4_PROPERTY_ID; showGA4Dashboard(); loadGA4Data(); }
+  } catch(e) { /* ignore */ }
 });
 
 // VERZENDING
@@ -1039,53 +1568,305 @@ function laadSteden() {
 async function renderVerzending() {
   laadSteden();
 
-  const bevestigd = getAllOrders().filter(o => effectiefCmd(o) === 'oui');
-  const verzondNums = verzendingen.map(v => v.num);
-  const teVerzenden = bevestigd.filter(o => !verzondNums.includes(o.num));
+  // v7.3: gebruik status DIRECT om te bepalen wat in welke tabel komt
+  // À expédier = klaar voor verzending (confirmé maar nog niet verzonden)
+  // Expédié    = al verzonden + bezorgd (status expedie)
+  const all = getAllOrders();
+  const teVerzenden = all.filter(o => effectiefCmd(o) === 'confirme');
+  const expedies    = all.filter(o => effectiefCmd(o) === 'expedie');
 
   // Stats
   document.getElementById('verzend-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Te verzenden</div><div class="stat-value orange">${teVerzenden.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Verzonden</div><div class="stat-value green">${verzendingen.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Bevestigd totaal</div><div class="stat-value">${bevestigd.length}</div></div>`;
+    <div class="stat-card"><div class="stat-label">À expédier</div><div class="stat-value orange">${teVerzenden.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Livré</div><div class="stat-value green">${expedies.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${teVerzenden.length + expedies.length}</div></div>`;
 
-  // Te verzenden tabel
+  // À expédier tabel — orders die klaar zijn maar nog geen bordereau hebben
   document.getElementById('tbl-te-verzenden').innerHTML = teVerzenden.length
     ? teVerzenden.map(o => `<tr>
-        <td class="mono">${o.num||'-'}</td>
-        <td title="${o.nom||''}">${o.nom||'-'}</td>
-        <td title="${o.prod||''}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${o.prod||'-'}</td>
-        <td>${o.ville||'-'}</td>
-        <td><button class="inv-btn" onclick="vulZendingIn('${o.num}')">📦 Verzenden</button></td>
+        <td class="mono">${o.num||'—'}</td>
+        <td title="${o.nom||''}">${o.nom||'—'}</td>
+        <td title="${o.prod||''}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${o.prod||'—'}</td>
+        <td>${o.ville||'—'}</td>
+        <td><button class="inv-btn" onclick="vulZendingIn('${o.num}')">📦 Préparer</button></td>
       </tr>`).join('')
-    : '<tr class="empty-row"><td colspan="5">Alle bevestigde orders zijn verzonden</td></tr>';
+    : '<tr class="empty-row"><td colspan="5">Aucune commande prête à expédier — confirmez d\'abord une commande</td></tr>';
 
-  // Verzonden tabel
-  document.getElementById('tbl-verzonden').innerHTML = verzendingen.length
-    ? verzendingen.map(v => `<tr>
-        <td class="mono">${v.num||'-'}</td>
-        <td>${v.naam||'-'}</td>
-        <td class="mono" style="font-size:11px">${v.tracking ? `<span title="${v.tracking}">${v.tracking.substring(0,16)}...</span>` : '—'}</td>
-        <td><span class="badge ${v.status === 'Geleverd' ? 'b-oui' : 'b-woo'}">${v.status||'Onderweg'}</span></td>
-      </tr>`).join('')
-    : '<tr class="empty-row"><td colspan="4">Nog niets verzonden</td></tr>';
+  // Update livre-count
+  var lc = document.getElementById('livre-count');
+  if (lc) lc.textContent = expedies.length;
+
+  // Livré tabel — alle orders met status expedie. Tracking-info uit verzendingen-array overlay als beschikbaar.
+  const trackingByNum = {};
+  verzendingen.forEach(v => { trackingByNum[v.num] = v; });
+  // Sorteer nieuwste eerst
+  expedies.sort((a, b) => {
+    const av = (a.date||'').split('/').reverse().join('');
+    const bv = (b.date||'').split('/').reverse().join('');
+    return bv.localeCompare(av);
+  });
+  document.getElementById('tbl-verzonden').innerHTML = expedies.length
+    ? expedies.map(o => {
+        const trk = trackingByNum[o.num];
+        const trackHtml = trk && trk.tracking
+          ? `<span title="${trk.tracking}">${trk.tracking.substring(0,16)}...</span>`
+          : '<span style="color:var(--text3)">—</span>';
+        const status = (trk && trk.status) || 'Livré';
+        return `<tr>
+          <td class="mono">${o.num||'—'}</td>
+          <td>${o.nom||'—'}</td>
+          <td class="mono" style="font-size:11px">${trackHtml}</td>
+          <td><span class="badge b-confirme">${status}</span></td>
+        </tr>`;
+      }).join('')
+    : '<tr class="empty-row"><td colspan="4">Aucune livraison pour le moment</td></tr>';
 }
 
+// Status migratie: oude (oui/non) → nieuwe (confirme/refuse/a_appeler)
+(function migrateStatuses() {
+  let changed = false;
+  Object.keys(lokaleStatussen).forEach(k => {
+    const v = (lokaleStatussen[k] || '').toLowerCase();
+    if (v === 'oui') { lokaleStatussen[k] = 'confirme'; changed = true; }
+    else if (v === 'non') { lokaleStatussen[k] = 'refuse'; changed = true; }
+  });
+  if (changed) localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+})();
+
+// Geeft één van: a_appeler | en_attente | confirme | expedie | refuse
 function effectiefCmd(o) {
   if (lokaleStatussen[o.num]) return lokaleStatussen[o.num];
-  return (o.cmd || '').toLowerCase();
+  const c = (o.cmd || '').toLowerCase();
+  if (c === 'oui' || c === 'confirme') return 'confirme';
+  if (c === 'non' || c === 'refuse')   return 'refuse';
+  return 'a_appeler'; // default voor nieuwe orders
 }
 
-function keurGoed(num) {
-  lokaleStatussen[num] = 'oui';
+function setOrderStatus(num, newStatus) {
+  lokaleStatussen[num] = newStatus;
   localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  renderOrders();
+  renderAtelier();
+}
+
+// Backwards-compat — niet meer gebruikt vanaf v7, vervangen door openConfirmModal/markPasRepondu
+function advanceStatus(num) {
+  const cur = effectiefCmd(getAllOrders().find(o => o.num === num) || {num});
+  if (cur === 'a_appeler' || cur === 'en_attente') return openConfirmModal(num);
+  if (cur === 'confirme') {
+    setOrderStatus(num, 'expedie');
+    naarVerzending(num);
+    return;
+  }
+}
+
+// === v7: nieuwe acties ===
+
+// "📞 Pas répondu" — increment counter, status naar en_attente
+function markPasRepondu(num) {
+  const attempts = getAttempts(num) + 1;
+  setMeta(num, 'attempts', attempts);
+  setMeta(num, 'last_call_attempt', Date.now());
+  lokaleStatussen[num] = 'en_attente';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  renderAtelier();
   renderOrders();
 }
 
-function weigerOrder(num) {
-  lokaleStatussen[num] = 'non';
+// Modal: bevestig order met aangepaste klantgegevens (verplicht voor verzending)
+function openConfirmModal(num) {
+  const o = getAllOrders().find(x => x.num === num);
+  if (!o) return;
+  const cd = getConfirmedData(num) || {};
+  document.getElementById('cm-num').textContent = '#' + num;
+  document.getElementById('cm-nom').value   = cd.nom   || o.nom   || '';
+  document.getElementById('cm-tel').value   = cd.tel   || o.tel   || '';
+  document.getElementById('cm-ville').value = cd.ville || o.ville || '';
+  document.getElementById('cm-adres').value = cd.adres || o.adres || '';
+  document.getElementById('cm-prod').value  = cd.prod  || o.prod  || '';
+  document.getElementById('cm-note').value  = cd.note  || o.note  || '';
+  document.getElementById('cm-msg').innerHTML = '';
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  document.getElementById('confirm-modal').dataset.num = num;
+}
+function closeConfirmModal() { document.getElementById('confirm-modal').classList.add('hidden'); }
+
+function submitConfirm() {
+  const num = document.getElementById('confirm-modal').dataset.num;
+  const nom   = document.getElementById('cm-nom').value.trim();
+  const tel   = document.getElementById('cm-tel').value.trim();
+  const ville = document.getElementById('cm-ville').value.trim();
+  const adres = document.getElementById('cm-adres').value.trim();
+  const prod  = document.getElementById('cm-prod').value.trim();
+  const note  = document.getElementById('cm-note').value.trim();
+  if (!nom || !tel || !ville || !adres) {
+    document.getElementById('cm-msg').innerHTML = '<div class="msg msg-err">Nom, téléphone, ville et adresse sont obligatoires pour la livraison.</div>';
+    return;
+  }
+  setMeta(num, 'confirmed_data', { nom, tel, ville, adres, prod, note });
+  setMeta(num, 'confirmed_at', Date.now());
+  lokaleStatussen[num] = 'confirme';
   localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  closeConfirmModal();
+  renderAtelier();
   renderOrders();
+  // Switch automatisch naar À Expédier tab zodat user ziet waar de order heen ging
+  if (currentOrdersView === 'atelier') switchAtelierTab('a_expedier');
+}
+
+// Modal: refuse met reden
+function openRefuseModal(num) {
+  const list = REFUSE_REASONS.map(r =>
+    `<button class="refuse-reason-btn" onclick="submitRefuse('${num}', '${r.id}')"><span style="font-size:18px">${r.icon}</span> <span>${r.label}</span></button>`
+  ).join('');
+  document.getElementById('rm-num').textContent = '#' + num;
+  document.getElementById('rm-list').innerHTML = list;
+  document.getElementById('refuse-modal').classList.remove('hidden');
+}
+function closeRefuseModal() { document.getElementById('refuse-modal').classList.add('hidden'); }
+
+function submitRefuse(num, reasonId) {
+  const reason = REFUSE_REASONS.find(r => r.id === reasonId);
+  setMeta(num, 'refuse_reason', reason ? reason.label : reasonId);
+  setMeta(num, 'refused_at', Date.now());
+  lokaleStatussen[num] = 'refuse';
+  localStorage.setItem('lokale_statussen', JSON.stringify(lokaleStatussen));
+  closeRefuseModal();
+  renderAtelier();
+  renderOrders();
+}
+
+// Backwards-compat: oude refuseOrder() functie roept nu modal op
+function refuseOrder(num) { openRefuseModal(num); }
+
+// Backwards-compat (oude knoppen die mogelijk nog ergens worden aangeroepen)
+function keurGoed(num) { setOrderStatus(num, 'confirme'); }
+function weigerOrder(num) { setOrderStatus(num, 'refuse'); }
+
+// View switching: Atelier vs Toutes les Commandes
+function switchOrdersView(view) {
+  currentOrdersView = view;
+  document.getElementById('view-atelier').style.display  = (view === 'atelier') ? '' : 'none';
+  document.getElementById('view-archive').style.display  = (view === 'archive') ? '' : 'none';
+  document.getElementById('vt-atelier').classList.toggle('active', view === 'atelier');
+  document.getElementById('vt-archive').classList.toggle('active', view === 'archive');
+  if (view === 'atelier') renderAtelier(); else renderOrders();
+}
+
+// Atelier tab switching
+function switchAtelierTab(tab) {
+  currentAtelierTab = tab;
+  ['a_appeler','en_attente','a_expedier'].forEach(t => {
+    document.getElementById('at-' + t).classList.toggle('active', t === tab);
+  });
+  renderAtelier();
+}
+
+// Atelier renderer — toont orders die in huidige tab passen
+function renderAtelier() {
+  const tabToStatus = { a_appeler:'a_appeler', en_attente:'en_attente', a_expedier:'confirme' };
+  const targetStatus = tabToStatus[currentAtelierTab];
+  const all = getAllOrders();
+  // Update badge counts
+  const counts = { a_appeler:0, en_attente:0, a_expedier:0 };
+  all.forEach(o => {
+    const s = effectiefCmd(o);
+    if (s === 'a_appeler') counts.a_appeler++;
+    else if (s === 'en_attente') counts.en_attente++;
+    else if (s === 'confirme')   counts.a_expedier++;
+  });
+  document.getElementById('cnt-a_appeler').textContent  = counts.a_appeler;
+  document.getElementById('cnt-en_attente').textContent = counts.en_attente;
+  document.getElementById('cnt-a_expedier').textContent = counts.a_expedier;
+
+  const rows = all.filter(o => effectiefCmd(o) === targetStatus);
+  // Sortering per tab:
+  //  À Appeler: nieuwste eerst (recent binnen)
+  //  En Attente: prioriteit op aantal pogingen + oudste laatste actie eerst (urgent terugbellen)
+  //  À Expédier: nieuwste confirmé eerst
+  if (currentAtelierTab === 'en_attente') {
+    rows.sort((a, b) => {
+      const aA = getAttempts(a.num), bA = getAttempts(b.num);
+      if (aA !== bA) return bA - aA; // meeste pogingen eerst (urgent)
+      const aT = (getMeta(a.num).last_call_attempt) || 0;
+      const bT = (getMeta(b.num).last_call_attempt) || 0;
+      return aT - bT; // oudste laatste poging eerst
+    });
+  } else {
+    rows.sort((a, b) => {
+      const av = (a.date||'').split('/').reverse().join('');
+      const bv = (b.date||'').split('/').reverse().join('');
+      return bv.localeCompare(av);
+    });
+  }
+
+  const tbody = document.getElementById('tbody-atelier');
+  if (!rows.length) {
+    const emptyMsg = currentAtelierTab === 'a_appeler' ? 'Aucune commande à appeler 🎉' :
+                     currentAtelierTab === 'en_attente' ? 'Aucune commande à rappeler 🎉' :
+                     'Aucune commande à expédier';
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-msg">${emptyMsg}</div></div></td></tr>`;
+    document.getElementById('count-atelier').textContent = '';
+    return;
+  }
+  tbody.innerHTML = rows.map(o => atelierRowHTML(o)).join('');
+  document.getElementById('count-atelier').textContent = `${rows.length} commande${rows.length>1?'s':''}`;
+}
+
+function atelierRowHTML(o) {
+  const isWeb = o.bron === 'woo';
+  const sourceIcon = isWeb
+    ? '<span class="source-icon web" title="Web (WooCommerce)">🌐</span>'
+    : '<span class="source-icon wa" title="WhatsApp / Manuel">💬</span>';
+  const cur = effectiefCmd(o);
+  const tel = (o.tel || '').replace(/\s+/g, '');
+  const telLink = tel ? `<a href="tel:${tel}" class="client-tel">📞 ${o.tel}</a>` : '<span class="client-tel">—</span>';
+  const waBtn = tel ? `<button class="btn-wa" onclick="openWhatsAppForOrder('${o.num}')">💬 WhatsApp</button>` : '';
+
+  // Attempts-badge (alleen tonen als > 0)
+  const attempts = getAttempts(o.num);
+  const attCls = attempts >= 3 ? 'att-3' : attempts === 2 ? 'att-2' : 'att-1';
+  const attBadge = attempts > 0 ? `<span class="attempts-badge ${attCls}" title="Nombre d'essais d'appel">📞 ${attempts}× essais</span>` : '';
+
+  // Acties verschillen per status:
+  let actionsHtml = '';
+  if (cur === 'a_appeler' || cur === 'en_attente') {
+    actionsHtml = `
+      ${waBtn}
+      <button class="btn-confirm" onclick="openConfirmModal('${o.num}')">✅ Confirmé</button>
+      <button class="btn-pas-repondu" onclick="markPasRepondu('${o.num}')">📞 Pas répondu</button>
+      <button class="btn-refused" onclick="openRefuseModal('${o.num}')" title="Refuser">✕</button>
+    `;
+  } else if (cur === 'confirme') {
+    // À Expédier: prominente "Faire bon" knop
+    actionsHtml = `
+      <button class="btn-bon-livraison" onclick="naarVerzending('${o.num}')">📦 Faire bon de livraison</button>
+      ${waBtn}
+      <button class="btn-refused" onclick="openRefuseModal('${o.num}')" title="Refuser">✕</button>
+    `;
+  } else {
+    actionsHtml = `${waBtn}`;
+  }
+
+  return `<tr>
+    <td class="cell-source">${sourceIcon}<span class="num-label">#${o.num || '—'}</span>${attBadge}<span class="date-label">${o.date || ''}</span></td>
+    <td class="cell-client"><span class="client-name">${o.nom || '—'}</span>${telLink}</td>
+    <td data-label="Ville">${o.ville || '<span style="color:#f87171">⚠ Manquant</span>'}</td>
+    <td data-label="Produit">${o.prod || '—'}</td>
+    <td class="cell-actions">${actionsHtml}</td>
+  </tr>`;
+}
+
+function openWhatsAppForOrder(num) {
+  const o = getAllOrders().find(x => x.num === num);
+  if (!o || !o.tel) return;
+  let tel = o.tel.replace(/[^\d+]/g, '');
+  if (tel.startsWith('0')) tel = '212' + tel.slice(1);
+  else if (tel.startsWith('+')) tel = tel.slice(1);
+  const naam = o.nom || 'cher client';
+  const msg = `Bonjour ${naam}, c'est Fatbikes.ma. Nous avons bien reçu votre commande. Pouvez-vous confirmer votre adresse de livraison ?`;
+  const url = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
 }
 
 function naarVerzending(num) {
@@ -1094,15 +1875,99 @@ function naarVerzending(num) {
 }
 
 function vulZendingIn(num) {
-  const order = getAllOrders().find(o => o.num === num);
+  // v7: gebruik getEffectiveOrder zodat de bevestigde klantdata (uit confirm modal) wordt gebruikt
+  const order = getEffectiveOrder(num);
   if (!order) return;
   document.getElementById('oz-num').value    = order.num   || '';
   document.getElementById('oz-naam').value   = order.nom   || '';
   document.getElementById('oz-tel').value    = order.tel   || '';
   document.getElementById('oz-adres').value  = order.adres || '';
   document.getElementById('oz-bedrag').value = order.price || '';
-  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">Bestelling ingevuld — controleer en klik op Zending aanmaken.</div>';
+  var prodEl = document.getElementById('oz-prod');
+  if (prodEl) prodEl.value = order.prod || '';
+  document.getElementById('oz-msg').innerHTML = '<div class="msg msg-info">✓ Données du client pré-remplies — vérifiez et créez le bordereau, ou imprimez le bon PDF.</div>';
   document.getElementById('oz-num').scrollIntoView({ behavior: 'smooth' });
+}
+
+// v7.5: Print/PDF bon de livraison — opent een printbaar venster met alle gegevens
+function printBon() {
+  const num    = document.getElementById('oz-num').value.trim();
+  const naam   = document.getElementById('oz-naam').value.trim();
+  const tel    = document.getElementById('oz-tel').value.trim();
+  const ville  = document.getElementById('oz-stad').selectedOptions[0]?.textContent || '';
+  const adres  = document.getElementById('oz-adres').value.trim();
+  const prod   = document.getElementById('oz-prod')?.value.trim() || '';
+  const bedrag = document.getElementById('oz-bedrag').value.trim();
+  const colis  = document.getElementById('oz-stock').value.trim() || '1';
+  if (!num || !naam || !tel || !adres) {
+    document.getElementById('oz-msg').innerHTML = '<div class="msg msg-err">Remplissez au moins #, nom, téléphone et adresse avant d\'imprimer.</div>';
+    return;
+  }
+  const today = new Date().toLocaleDateString('fr-FR');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bon de livraison ${num}</title>
+  <style>
+    @page { size: A5; margin: 12mm; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #111; margin: 0; padding: 0; font-size: 13px; line-height: 1.4; }
+    .bon { padding: 8px; }
+    .header { display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #ff6b35; padding-bottom: 12px; margin-bottom: 16px; }
+    .logo { font-size: 22px; font-weight: 800; color: #ff6b35; }
+    .logo span { color: #10b981; }
+    .meta { text-align: right; font-size: 11px; color: #666; }
+    .meta strong { display: block; color: #111; font-size: 14px; margin-bottom: 2px; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #666; margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+    .row { display: flex; padding: 4px 0; }
+    .label { width: 110px; color: #666; font-weight: 500; }
+    .value { flex: 1; font-weight: 600; }
+    .total-box { margin-top: 18px; background: #fff5ed; border: 1px solid #ff6b35; border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .total-box .l { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+    .total-box .v { font-size: 22px; font-weight: 800; color: #ff6b35; }
+    .footer { margin-top: 24px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+    .barcode-area { margin-top: 14px; padding: 12px; border: 1px dashed #ccc; text-align: center; font-family: monospace; font-size: 18px; letter-spacing: 4px; }
+    @media print { body { -webkit-print-color-adjust: exact; } }
+  </style></head><body><div class="bon">
+    <div class="header">
+      <div>
+        <div class="logo">Fatbikes<span>.ma</span></div>
+        <div style="font-size:10px;color:#666;margin-top:2px">Vélos électriques au Maroc</div>
+      </div>
+      <div class="meta">
+        <strong>BON DE LIVRAISON</strong>
+        N° ${num}<br>
+        Date : ${today}
+      </div>
+    </div>
+
+    <h2>Destinataire</h2>
+    <div class="row"><div class="label">Nom :</div><div class="value">${naam}</div></div>
+    <div class="row"><div class="label">Téléphone :</div><div class="value">${tel}</div></div>
+    <div class="row"><div class="label">Ville :</div><div class="value">${ville}</div></div>
+    <div class="row"><div class="label">Adresse :</div><div class="value">${adres}</div></div>
+
+    <h2>Commande</h2>
+    <div class="row"><div class="label">Produit :</div><div class="value">${prod || '—'}</div></div>
+    <div class="row"><div class="label">Nombre de colis :</div><div class="value">${colis}</div></div>
+
+    <div class="total-box">
+      <span class="l">Montant à encaisser (COD)</span>
+      <span class="v">${bedrag ? bedrag + ' DH' : '— DH'}</span>
+    </div>
+
+    <div class="barcode-area">#${num}</div>
+
+    <div class="footer">
+      Fatbikes.ma · contact@fatbikes.ma · +212 661 063 713 · Paiement à la livraison · Garantie 1 an
+    </div>
+  </div>
+  <scr` + `ipt>setTimeout(function(){window.print();},300);<\/scr` + `ipt>
+  </body></html>`;
+  const w = window.open('', '_blank', 'width=720,height=900');
+  if (!w) {
+    document.getElementById('oz-msg').innerHTML = '<div class="msg msg-err">Ouverture du popup bloquée. Autorisez les popups pour fatbikes.ma.</div>';
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
 
 async function maakZending() {
